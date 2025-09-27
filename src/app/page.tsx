@@ -1,103 +1,161 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+const dentists = [
+  {
+    id: 1,
+    name: "Dr. Maya Shrestha",
+    title: "Cosmetic Dentist",
+    location: "Kathmandu",
+    price: "From NPR 2,500",
+    rating: 4.9,
+    img: "/file.svg",
+  },
+  {
+    id: 2,
+    name: "Dr. Ramesh Adhikari",
+    title: "Orthodontist",
+    location: "Pokhara",
+    price: "From NPR 3,000",
+    rating: 4.8,
+    img: "/globe.svg",
+  },
+  {
+    id: 3,
+    name: "Dr. Sunita Koirala",
+    title: "Pediatric Dentist",
+    location: "Lalitpur",
+    price: "From NPR 1,800",
+    rating: 4.7,
+    img: "/next.svg",
+  },
+  {
+    id: 4,
+    name: "Dr. Arjun Thapa",
+    title: "Oral Surgeon",
+    location: "Butwal",
+    price: "From NPR 4,500",
+    rating: 4.6,
+    img: "/window.svg",
+  },
+];
+
+export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="max-w-6xl mx-auto py-2 my-2">
+      {/* Hero */}
+      <section className="relative grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-gradient-to-r from-blue-50 to-white rounded-xl p-8 md:p-16 shadow-lg">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-blue-700 leading-tight">
+            Book trusted dental care across Nepal
+          </h1>
+          <p className="mt-4 text-gray-700 text-lg">
+            Find dentists, read reviews, and book appointments in minutes. Gentle care,
+            modern clinics, and clear prices — all in one place.
+          </p>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+          <form className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input
+              aria-label="search services"
+              placeholder="Search e.g. 'cosmetic', 'orthodontist'"
+              className="px-4 py-3 rounded-lg border border-gray-200 shadow-sm"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
+            <input
+              aria-label="location"
+              placeholder="City or Location"
+              className="px-4 py-3 rounded-lg border border-gray-200 shadow-sm"
+            />
+            <button
+              type="button"
+              className="bg-blue-600 text-white px-4 py-3 rounded-lg shadow hover:bg-blue-700"
+            >
+              Search
+            </button>
+          </form>
+
+          <div className="mt-6 flex flex-wrap gap-3 text-sm text-gray-600">
+            <span className="px-3 py-1 bg-white rounded-full shadow">No walk-ins</span>
+            <span className="px-3 py-1 bg-white rounded-full shadow">Verified clinics</span>
+            <span className="px-3 py-1 bg-white rounded-full shadow">Secure payments</span>
+          </div>
+        </div>
+
+        <div className="hidden md:flex justify-center">
+          <div className="w-72 h-72 bg-white rounded-xl shadow-lg flex items-center justify-center">
+            <img src="/vercel.svg" alt="dental illustration" className="w-40 h-40 opacity-90" />
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Dentists */}
+      <section className="mt-10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Top Rated Dentists</h2>
+          <a href="/appointments" className="text-blue-600 hover:underline">
+            View all
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mt-6">
+          {dentists.map((d) => (
+            <article key={d.id} className="bg-white rounded-xl shadow p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <img src={d.img} alt={d.name} className="w-10 h-10" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">{d.name}</h3>
+                  <p className="text-sm text-gray-500">{d.title}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 text-sm text-gray-600">
+                <p>{d.location} · <span className="text-black font-medium">{d.price}</span></p>
+                <p className="mt-2">⭐ {d.rating} · <span className="text-blue-600">Book now</span></p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="mt-12 bg-gray-50 p-6 rounded-xl">
+        <h2 className="text-xl font-bold">How it works</h2>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 bg-white rounded-lg shadow">
+            <h4 className="font-semibold">1. Search</h4>
+            <p className="text-sm text-gray-600 mt-2">Find the service or dentist you need.</p>
+          </div>
+          <div className="p-4 bg-white rounded-lg shadow">
+            <h4 className="font-semibold">2. Book</h4>
+            <p className="text-sm text-gray-600 mt-2">Choose an available slot and confirm.</p>
+          </div>
+          <div className="p-4 bg-white rounded-lg shadow">
+            <h4 className="font-semibold">3. Visit</h4>
+            <p className="text-sm text-gray-600 mt-2">Get treated by licensed professionals.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="mt-12">
+        <h2 className="text-xl font-bold">What patients say</h2>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <blockquote className="p-4 bg-white rounded-lg shadow">
+            <p className="text-gray-700">“Friendly staff, painless filling, and quick booking.”</p>
+            <cite className="block mt-3 text-sm text-gray-500">— Sita, Kathmandu</cite>
+          </blockquote>
+          <blockquote className="p-4 bg-white rounded-lg shadow">
+            <p className="text-gray-700">“My child's first visit was great — very patient and kind.”</p>
+            <cite className="block mt-3 text-sm text-gray-500">— Rohan, Pokhara</cite>
+          </blockquote>
+          <blockquote className="p-4 bg-white rounded-lg shadow">
+            <p className="text-gray-700">“Transparent pricing and professional care.”</p>
+            <cite className="block mt-3 text-sm text-gray-500">— Anju, Lalitpur</cite>
+          </blockquote>
+        </div>
+      </section>
+
+      <div className="h-10" />
     </div>
   );
 }
