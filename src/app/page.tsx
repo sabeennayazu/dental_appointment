@@ -41,9 +41,9 @@ const dentists = [
 
 export default function HomePage() {
   return (
-    <div className="max-w-6xl mx-auto py-2 my-2">
+    <div className="max-w-6xl mx-auto py-6 my-4 bg-white">
       {/* Hero */}
-      <section className="relative grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-gradient-to-r from-blue-50 to-white rounded-xl p-8 md:p-16 shadow-lg">
+      <section className="relative grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-blue-200 rounded-2xl border-white p-8 md:p-16 shadow-lg">
         <div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-blue-700 leading-tight">
             Book trusted dental care across Nepal
@@ -66,16 +66,16 @@ export default function HomePage() {
             />
             <button
               type="button"
-              className="bg-blue-600 text-white px-4 py-3 rounded-lg shadow hover:bg-blue-700"
+              className="bg-blue-500 text-white px-4 py-3 rounded-lg shadow hover:bg-blue-700"
             >
               Search
             </button>
           </form>
 
           <div className="mt-6 flex flex-wrap gap-3 text-sm text-gray-600">
-            <span className="px-3 py-1 bg-white rounded-full shadow">No walk-ins</span>
-            <span className="px-3 py-1 bg-white rounded-full shadow">Verified clinics</span>
-            <span className="px-3 py-1 bg-white rounded-full shadow">Secure payments</span>
+            <span className="px-3 py-1 pb-1.5 bg-[#F8EDE3] rounded-full shadow">No walk-ins</span>
+            <span className="px-3 py-1 pb-1.5 bg-[#F8EDE3] rounded-full shadow">Verified clinics</span>
+            <span className="px-3 py-1 pb-1.5  bg-[#F8EDE3] rounded-full shadow">Secure payments</span>
           </div>
         </div>
 
