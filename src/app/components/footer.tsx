@@ -39,7 +39,7 @@ export default function Footer() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
             <ul className="space-y-3">
               {[
-                { href: "#about", label: "About Us" },
+                
                 { href: "#services", label: "Our Services" },
                 { href: "#why-choose-us", label: "Why Choose Us" },
                 { href: "#testimonials", label: "Patient Feedback" },
@@ -89,17 +89,14 @@ export default function Footer() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Opening Hours</h3>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex justify-between">
-                <span>Monday - Friday</span>
-                <span>9:00 AM - 7:00 PM</span>
+                <span>Sunday - Friday</span>
+                <span>8:00 AM - 6:00 PM</span>
               </li>
               <li className="flex justify-between">
                 <span>Saturday</span>
                 <span>9:00 AM - 4:00 PM</span>
               </li>
-              <li className="flex justify-between">
-                <span>Sunday</span>
-                <span>Emergency Only</span>
-              </li>
+              
             </ul>
             <div className="mt-6">
               <a 

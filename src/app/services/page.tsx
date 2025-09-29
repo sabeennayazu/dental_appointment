@@ -85,9 +85,13 @@ export default function ServicesPage() {
             className="bg-white border border-gray-200 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-transform hover:scale-[1.02] cursor-pointer"
             onClick={() => setSelectedService(service)}
           >
-            <div className="relative w-full h-48">
-              <Image src={service.image} alt={service.title} fill className="object-cover" />
-            </div>
+            <Image
+              src={service.image}
+              alt={service.title}
+              width={400}
+              height={192}
+              className="object-cover w-full h-48"
+            />
             <div className="p-5">
               <h2 className="text-lg font-semibold text-gray-900">{service.title}</h2>
               <p className="text-gray-600 text-sm mt-2">{service.description}</p>
@@ -97,7 +101,7 @@ export default function ServicesPage() {
       </div>
 
       {/* Modal Popup */}
-      {selectedService && (
+      {typeof window !== "undefined" && selectedService && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
           onClick={() => setSelectedService(null)}
@@ -107,12 +111,21 @@ export default function ServicesPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
-
+            <button
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              onClick={() => setSelectedService(null)}
+            >
+              ✕
+            </button>
 
             {/* Image */}
-            <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden">
-              <Image src={selectedService.image} alt={selectedService.title} fill className="object-cover" />
-            </div>
+            <Image
+              src={selectedService.image}
+              alt={selectedService.title}
+              width={400}
+              height={192}
+              className="object-cover w-full h-48 mb-4 rounded-lg"
+            />
 
             <h2 className="text-xl font-bold text-gray-900 mb-2">{selectedService.title}</h2>
             <p className="text-gray-700 text-sm">{selectedService.details}</p>

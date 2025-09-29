@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Check,
   Clock,
@@ -15,6 +16,7 @@ import {
   Phone,
   MapPin,
   Mail,
+
 } from "lucide-react";
 
 const services = [
@@ -68,7 +70,7 @@ const benefits = [
   },
   {
     title: "Flexible Scheduling",
-    description: "We offer convenient appointment times to fit your busy schedule.",
+    description: "We offer convenient appointment times to fit your busy schedule. You can choose the time yourself.",
     icon: <Calendar className="h-6 w-6" />,
   },
 ];
@@ -76,7 +78,7 @@ const benefits = [
 const testimonials = [
   {
     id: 1,
-    name: "Samantha P.",
+    name: "Sunita Lamsal",
     role: "Patient",
     content:
       "The team at Alfa Dental made me feel so comfortable during my procedure. The office is beautiful and the staff is incredibly professional.",
@@ -84,7 +86,7 @@ const testimonials = [
   },
   {
     id: 2,
-    name: "Michael T.",
+    name: "Raj Shrestha",
     role: "Patient",
     content:
       "I was nervous about getting dental work done, but the dentist was patient and explained everything clearly. Highly recommend!",
@@ -92,7 +94,7 @@ const testimonials = [
   },
   {
     id: 3,
-    name: "Emily R.",
+    name: "Maya Gurung",
     role: "Patient",
     content:
       "The online booking system is so convenient, and the staff followed up with me before my appointment. Great experience overall.",
@@ -183,8 +185,32 @@ export default function HomePage() {
                 Our Services
               </a>
             </div>
+            {/* New Highlights under buttons */}
+            <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+              <div>
+                <span className="text-3xl font-bold text-green-600 flex items-center justify-center gap-2">
+                  10+ Years
+                </span>
+                <p className="mt-1 text-gray-600">of Excellence</p>
+              </div>
 
-            
+              <div>
+                <span className="text-3xl font-bold text-yellow-500 flex items-center justify-center gap-2">
+                  5,000+
+                </span>
+                <p className="mt-1 text-gray-600">Happy Patients</p>
+              </div>
+
+              <div>
+                <span className="text-3xl font-bold text-blue-600 flex items-center justify-center gap-2">
+                  Certified
+                </span>
+                <p className="mt-1 text-gray-600">Specialists</p>
+              </div>
+            </div>
+
+
+
           </div>
 
           {/* Right Image */}
@@ -205,12 +231,21 @@ export default function HomePage() {
 
       {/* Services Section */}
       <section id="services" className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 py-6  sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">Our Dental Services</h2>
             <p className="mt-3 text-xl text-gray-600">Comprehensive dental care for the whole family</p>
           </div>
 
+          {/* View All Button Aligned Right */}
+          <div className="flex justify-end mb-6">
+            <Link href="/services">
+              <button className="flex items-center cursor-pointer text-blue-600 hover:text-blue-800 transition-colors font-medium">
+                <span className="mr-1">View all</span>
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </Link>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
             {services.map((service) => (
               <div
@@ -222,13 +257,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{service.title}</h3>
                 <p className="text-gray-600 leading-relaxed">{service.description}</p>
-                <a
-                  href="#book-now"
-                  className="mt-5 inline-flex items-center text-blue-700 font-medium hover:text-blue-900"
-                >
-                  Learn more
-                  <ChevronRight className="ml-1 h-4 w-4" />
-                </a>
+
                 <div className="pointer-events-none absolute inset-x-0 -bottom-6 mx-auto h-12 w-[80%] rounded-full bg-black/5 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
               </div>
             ))}
@@ -329,7 +358,7 @@ export default function HomePage() {
         </div>
       </section>
 
-    
+
 
       {/* Book Now Section */}
       <section id="book-now" className="py-20">
@@ -354,12 +383,12 @@ export default function HomePage() {
                         <p className="text-blue-100">
                           Sunday - Friday: 8:00 AM - 6:00 PM
                           <br />Saturday: 9:00 AM - 4:00 PM
-                          
+
                         </p>
                       </div>
                     </div>
 
-                    
+
                   </div>
                 </div>
               </div>
@@ -417,11 +446,10 @@ export default function HomePage() {
                         onChange={handleInputChange}
                         className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="">Select a service</option>
-                        <option value="general">General Dentistry</option>
-                        <option value="cosmetic">Cosmetic Dentistry</option>
-                        <option value="orthodontics">Orthodontics</option>
-                        <option value="emergency">Emergency Care</option>
+                        <option value="">Select a Location</option>
+                        <option value="general">Duwakot</option>
+                        <option value="cosmetic">Kamalbinayak</option>
+                        <option value="orthodontics">Sallaghari</option>
                       </select>
                     </div>
                     <div>
@@ -458,11 +486,10 @@ export default function HomePage() {
                       <option value="15:00">3:00 PM</option>
                       <option value="16:00">4:00 PM</option>
                       <option value="17:00">5:00 PM</option>
-                      <option value="18:00">6:00 PM</option>
                     </select>
                   </div>
 
-                  
+
                   <div className="pt-2">
                     <button
                       type="submit"
@@ -480,7 +507,7 @@ export default function HomePage() {
 
       {/* Contact Section */}
       <section id="contact" className="py-20 bg-gradient-to-b from-blue-50/60 to-white/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">Get In Touch</h2>
             <p className="mt-3 text-xl text-gray-600">We'd love to hear from you</p>
@@ -489,44 +516,23 @@ export default function HomePage() {
             <div className="rounded-2xl bg-white/80 backdrop-blur p-6 shadow-md ring-1 ring-black/5 text-center hover:-translate-y-1 transition-all">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-700 mb-4"><MapPin className="h-6 w-6" /></div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Our Location</h3>
-              <p className="text-gray-600 leading-relaxed">123 Dental Avenue<br/>Kathmandu, Nepal 44600</p>
+              <p className="text-gray-600 leading-relaxed">123 Dental Avenue<br />Kathmandu, Nepal 44600</p>
             </div>
             <div className="rounded-2xl bg-white/80 backdrop-blur p-6 shadow-md ring-1 ring-black/5 text-center hover:-translate-y-1 transition-all">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-700 mb-4"><Phone className="h-6 w-6" /></div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Phone</h3>
-              <p className="text-gray-600 leading-relaxed">+977 1 2345678<br/>+977 1 2345679</p>
+              <p className="text-gray-600 leading-relaxed">+977 1 2345678<br />+977 1 2345679</p>
             </div>
             <div className="rounded-2xl bg-white/80 backdrop-blur p-6 shadow-md ring-1 ring-black/5 text-center hover:-translate-y-1 transition-all">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-700 mb-4"><Mail className="h-6 w-6" /></div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Email</h3>
-              <p className="text-gray-600 leading-relaxed">info@alfadental.com<br/>appointments@alfadental.com</p>
+              <p className="text-gray-600 leading-relaxed">info@alfadental.com<br />appointments@alfadental.com</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Testimonials (static grid) */}
-      <section className="py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-xl font-bold text-blue-800">What patients say</h2>
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <blockquote className="p-5 rounded-2xl bg-gradient-to-br from-white to-blue-50 shadow-md ring-1 ring-black/5">
-              <p className="text-gray-700">“Friendly staff, painless filling, and quick booking.”</p>
-              <cite className="block mt-3 text-sm text-gray-500">— Sita, Kathmandu</cite>
-            </blockquote>
-            <blockquote className="p-5 rounded-2xl bg-gradient-to-br from-white to-indigo-50 shadow-md ring-1 ring-black/5">
-              <p className="text-gray-700">“My child's first visit was great — very patient and kind.”</p>
-              <cite className="block mt-3 text-sm text-gray-500">— Rohan, Pokhara</cite>
-            </blockquote>
-            <blockquote className="p-5 rounded-2xl bg-gradient-to-br from-white to-purple-50 shadow-md ring-1 ring-black/5">
-              <p className="text-gray-700">“Transparent pricing and professional care.”</p>
-              <cite className="block mt-3 text-sm text-gray-500">— Anju, Lalitpur</cite>
-            </blockquote>
-          </div>
-        </div>
-      </section>
 
-      <div className="h-10" />
     </div>
   );
 }
