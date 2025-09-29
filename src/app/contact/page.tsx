@@ -88,7 +88,7 @@ export default function ContactPage() {
       {/* Map & Contact Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Map Placeholder */}
-        <div className="w-full h-106 rounded-xl overflow-hidden shadow-lg">
+        <div className="w-full h-104 rounded-xl overflow-hidden shadow-lg">
           <iframe
             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d28261.668719614678!2d85.38988329430528!3d27.695400218726785!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb1aef403db575%3A0x53157d88cbb3929a!2sDuwakot!5e0!3m2!1sen!2snp!4v1759158359543!5m2!1sen!2snp"
             className="w-full h-full border-0"
@@ -122,7 +122,7 @@ export default function ContactPage() {
               onChange={handleChange}
               rows={5}
               placeholder="Your Message"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full px-4  border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
             <button
               type="submit"

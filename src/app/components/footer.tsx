@@ -1,10 +1,11 @@
-import { Facebook, Instagram, Twitter, MapPin, Phone, Mail } from "lucide-react";
+import { Facebook, Instagram, MapPin, Phone, Mail } from "lucide-react";
+import { FaTiktok } from "react-icons/fa";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-  
+
   return (
-    <footer className="bg-gradient-to-b from-blue-50 to-white pt-16 pb-8 mt-20">
+    <footer className="bg-gradient-to-b from-blue-50 to-white pt-8 pb-8 mt-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* About Section */}
@@ -16,46 +17,30 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-gray-600 text-sm leading-relaxed">
-              Your trusted partner for exceptional dental care. We're committed to providing the highest quality dental services in a comfortable and welcoming environment.
+              Your trusted partner for exceptional dental care. We provide the highest quality services in a comfortable and welcoming environment.
             </p>
-            <div className="flex space-x-4 pt-2">
+          </div>
+
+          {/* Connect Section */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Connect</h3>
+            
+
+            {/* Social Media Icons */}
+            <div className="flex space-x-4 mt-2">
               <a href="#" className="text-blue-600 hover:text-blue-800 transition-colors">
                 <span className="sr-only">Facebook</span>
-                <Facebook className="h-5 w-5" />
+                <Facebook className="h-8 w-8" />
               </a>
               <a href="#" className="text-pink-600 hover:text-pink-800 transition-colors">
                 <span className="sr-only">Instagram</span>
-                <Instagram className="h-5 w-5" />
+                <Instagram className="h-8 w-8" />
               </a>
-              <a href="#" className="text-blue-400 hover:text-blue-600 transition-colors">
-                <span className="sr-only">Twitter</span>
-                <Twitter className="h-5 w-5" />
-              </a>
+              <a href="#" className="hover:text-gray-800">
+  <span className="sr-only">TikTok</span>
+  <FaTiktok size={30} />
+</a>
             </div>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
-            <ul className="space-y-3">
-              {[
-                
-                { href: "#services", label: "Our Services" },
-                { href: "#why-choose-us", label: "Why Choose Us" },
-                { href: "#testimonials", label: "Patient Feedback" },
-                { href: "#contact", label: "Contact Us" },
-              ].map((item) => (
-                <li key={item.href}>
-                  <a 
-                    href={item.href}
-                    className="text-gray-600 hover:text-blue-600 text-sm transition-colors flex items-center"
-                  >
-                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2"></span>
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
           </div>
 
           {/* Contact Info */}
@@ -96,10 +81,9 @@ export default function Footer() {
                 <span>Saturday</span>
                 <span>9:00 AM - 4:00 PM</span>
               </li>
-              
             </ul>
             <div className="mt-6">
-              <a 
+              <a
                 href="#book-now"
                 className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-sm font-medium hover:from-blue-700 hover:to-cyan-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 w-full text-center"
               >
@@ -110,20 +94,16 @@ export default function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-gray-200 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+        <div className="border-t border-gray-200 mt-12 pt-4 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-500">
             © {currentYear} Alfa Dental. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="/privacy" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">
-              Privacy Policy
+            <p className="text-sm text-gray-500">Site Design by:</p>
+            <a href="https://github.com/sabeennayazu" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">
+               Sabeen Nayazu
             </a>
-            <a href="/terms" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">
-              Terms of Service
-            </a>
-            <a href="/sitemap" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">
-              Sitemap
-            </a>
+            
           </div>
         </div>
       </div>

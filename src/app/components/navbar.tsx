@@ -27,7 +27,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: "/services", label: "Our Services" },
-    { href: "#why-choose-us", label: "Status" },
+    { href: "/status", label: "Status" },
     { href: "/contact", label: "Contact" },
     
   ];
