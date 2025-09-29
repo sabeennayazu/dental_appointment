@@ -1,102 +1,116 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { User, HelpCircle, Settings, LogOut } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      const target = e.target as Node;
-      if (
-        open &&
-        menuRef.current &&
-        buttonRef.current &&
-        !menuRef.current.contains(target) &&
-        !buttonRef.current.contains(target)
-      ) {
-        setOpen(false);
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
       }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrolled]);
+
+  const navLinks = [
+    
+    { href: "#services", label: "Our Services" },
+    { href: "#why-choose-us", label: "Status" },
+    { href: "#testimonials", label: "Feedback" },
+    { href: "#contact", label: "Contact" },
+  ];
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white">
-      <div className="w-full px-6 py-3 flex items-center justify-between">
+    <header 
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white shadow-md py-2' : 'bg-white/95 backdrop-blur-sm py-4'}`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <a 
+            href="/" 
+            className="flex items-center space-x-2 group"
+          >
+            <span className="text-3xl text-blue-600">🦷</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+              Alfa Dental
+            </span>
+          </a>
 
-        {/* Logo */}
-        <a href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
-          <span className="text-2xl">🦷</span>
-          <span className="font-bold text-2xl text-blue-700">DentalCare</span>
-        </a>
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${pathname === link.href ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
+              >
+                {link.label}
+              </a>
+            ))}
+            <a
+              href="#book-now"
+              className="ml-4 inline-flex items-center px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-sm font-medium hover:from-blue-700 hover:to-cyan-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+            >
+              Book Now
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </a>
+          </nav>
 
-        {/* Nav links + profile */}
-        <div className="flex items-center gap-6">
-          {[
-            { href: "/services", label: "Our Services" },
-            { href: "/appointments", label: "Book" },
-            { href: "/bookings", label: "My Bookings" },
-            { href: "/contact", label: "Contact" },
-          ].map((link) => (
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-blue-600 focus:outline-none"
+              onClick={() => setScrolled(!scrolled)}
+            >
+              <span className="sr-only">Open main menu</span>
+              <svg
+                className="h-6 w-6"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      <div className={`md:hidden ${scrolled ? 'block' : 'hidden'}`}>
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+          {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-sm text-black transition-all hover:underline hover:text-[#1E40AF] hover:scale-105"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
             >
               {link.label}
             </a>
           ))}
-
-          {/* Profile dropdown */}
-          <div className="relative" ref={menuRef}>
-            <button
-              ref={buttonRef}
-              onClick={() => setOpen((s) => !s)}
-              aria-haspopup="true"
-              aria-expanded={open}
-              className="ml-2 flex items-center gap-2 rounded-full px-2 py-1 focus:outline-none transition-transform hover:scale-105"
-            >
-              <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm font-medium">
-                JD
-              </div>
-            </button>
-
-            {open && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50">
-                {[
-                  { href: "/profile", label: "Your profile", icon: <User className="h-4 w-4" /> },
-                  { href: "/help", label: "Help & Support", icon: <HelpCircle className="h-4 w-4" /> },
-                  { href: "/settings", label: "Settings & Privacy", icon: <Settings className="h-4 w-4" /> },
-                ].map((item) => (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-black hover:underline hover:text-[#1E40AF] hover:scale-105 transition-all"
-                  >
-                    {item.icon}
-                    {item.label}
-                  </a>
-                ))}
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    window.location.href = "/logout";
-                  }}
-                  className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-black hover:underline hover:text-[#1E40AF] hover:scale-105 transition-all"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
+          <a
+            href="#book-now"
+            className="block w-full text-center mt-2 px-3 py-2 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-medium hover:from-blue-700 hover:to-cyan-600 transition-colors"
+          >
+            Book Now
+          </a>
         </div>
-
       </div>
     </header>
   );
