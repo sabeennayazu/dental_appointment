@@ -361,8 +361,8 @@ export default function HomePage() {
 
 
       {/* Book Now Section */}
-      <section id="book-now" className="py-20">
-        <div className="max-w-7xl mx-auto px-4 py-10 my-10 sm:px-6 lg:px-8">
+      <section id="book-now" className="py-22">
+        <div className="max-w-7xl mx-auto px-4   sm:px-6 lg:px-8">
           <div className="overflow-hidden rounded-3xl shadow-2xl ring-1 ring-black/5 bg-white">
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="relative bg-gradient-to-b from-blue-800 to-blue-600 p-10 lg:p-14 text-white">
@@ -373,7 +373,7 @@ export default function HomePage() {
                     Fill out the form and our team will get back to you within 24 hours to confirm your appointment.
                   </p>
 
-                  <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 gap-2">
                     <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center h-12 w-12 rounded-full bg-white/10">
                         <Calendar className="h-6 w-6" />
@@ -385,8 +385,42 @@ export default function HomePage() {
                           <br />Saturday: 9:00 AM - 4:00 PM
 
                         </p>
+                        
                       </div>
                     </div>
+                    <div className="mt-6 bg-white/10 rounded-xl p-4 border border-white/20">
+  <h3 className="text-lg font-semibold mb-3">Not sure what service to select?</h3>
+
+  {/* Tooth Related */}
+  <p className="text-white font-medium mt-2">🦷 Tooth Problems:</p>
+  <ul className="text-sm space-y-1 ml-4">
+    <li>✔ Toothache / Sensitivity → <span className="text-blue-200 font-semibold">Endodontist</span></li>
+    <li>✔ Broken or Missing Tooth → <span className="text-blue-200 font-semibold">Prosthodontist</span></li>
+    <li>✔ Need Tooth Extraction → <span className="text-blue-200 font-semibold">Oral Surgery</span></li>
+  </ul>
+
+  {/* Gum Related */}
+  <p className="text-white font-medium mt-4">🌿 Gum / Mouth Issues:</p>
+  <ul className="text-sm space-y-1 ml-4">
+    <li>✔ Gum Bleeding / Swelling → <span className="text-blue-200 font-semibold">Periodontist</span></li>
+    <li>✔ Bad Breath / Loose Gums → <span className="text-blue-200 font-semibold">Periodontist</span></li>
+  </ul>
+
+  {/* Cosmetic / Appearance */}
+  <p className="text-white font-medium mt-4">✨ Cosmetic / Appearance:</p>
+  <ul className="text-sm space-y-1 ml-4">
+    <li>✔ Crooked / Misaligned Teeth → <span className="text-blue-200 font-semibold">Orthodontics</span></li>
+    <li>✔ Teeth Whitening / Smile Makeover → <span className="text-blue-200 font-semibold">Cosmetic Dentistry</span></li>
+  </ul>
+
+  {/* Routine */}
+  <p className="text-white font-medium mt-4">✅ Routine Care:</p>
+  <ul className="text-sm space-y-1 ml-4">
+    <li>✔ General Cleaning / Checkup → <span className="text-blue-200 font-semibold">General Checkup</span></li>
+    <li>✔ Not Sure / First Time Visit → <span className="text-blue-200 font-semibold">General Checkup</span></li>
+  </ul>
+</div>
+
 
 
                   </div>
@@ -446,10 +480,13 @@ export default function HomePage() {
                         onChange={handleInputChange}
                         className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="">Select a Location</option>
-                        <option value="general">Duwakot</option>
-                        <option value="cosmetic">Kamalbinayak</option>
-                        <option value="orthodontics">Sallaghari</option>
+                        <option value="">Select a Service</option>
+                        <option value="general">General Checkup</option>
+                        <option value="cosmetic">Periodontist</option>
+                        <option value="orthodontics">Orthodontics</option>
+                        <option value="pediatric">Endodontist</option>
+                        <option value="oral">Oral Surgery</option>
+                        <option value="prosthodontist">Prosthodontist</option>
                       </select>
                     </div>
                     <div>
@@ -488,6 +525,20 @@ export default function HomePage() {
                       <option value="17:00">5:00 PM</option>
                     </select>
                   </div>
+                  <div>
+  <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+    Problem Description (Optional)
+  </label>
+  <textarea
+    id="message"
+    name="message"
+    rows={3}
+    value={formData.message}
+    onChange={handleInputChange}
+    placeholder="Briefly describe your issue (e.g. Toothache, Gum bleeding, etc.)"
+    className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+  />
+</div>
 
 
                   <div className="pt-2">

@@ -41,7 +41,7 @@ export default function Navbar() {
       }`}
     >
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-14">
           {/* Logo */}
           <a href="/" className="flex items-center space-x-2 group">
             <span className="text-3xl text-blue-600">🦷</span>

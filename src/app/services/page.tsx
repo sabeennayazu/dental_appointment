@@ -12,60 +12,81 @@ type Service = {
 
 const services: Service[] = [
   {
-    title: "General Checkup",
-    description: "Routine examination to ensure dental health and detect early issues.",
-    image: "/images/general.jpg",
+    title: "Scaling & Polishing (Oral Prophylaxis)",
+    description: "Gentle yet effective cleaning experience with advanced ultrasonic scalers and air polisher.",
+    image: "/images/scaling.jpg",
     details:
-      "Our general checkups include oral examination, cavity detection, gum health assessment, and professional guidance for better hygiene.",
+      "At our clinic, we use advanced ultrasonic scalers and air polisher for a gentle yet effective cleaning experience. Whether you're due for a routine cleaning or have early signs of plaque buildup, our professional cleaning ensures your teeth stay healthy and bright.",
   },
   {
-    title: "Dental Cleaning",
-    description: "Professional scaling and polishing to remove plaque and tartar.",
-    image: "/images/dental_cleaning.jpeg",
+    title: "Teeth Whitening (Bleaching)",
+    description: "Professional teeth bleaching for a brighter, whiter smile.",
+    image: "/images/teeth_whitening.jpg",
     details:
-      "Deep cleaning reduces bad breath, prevents gum disease, and ensures long-term oral protection. Recommended twice a year.",
+      "Brighten your smile with professional teeth bleaching at Alfa Dental Home. We offer vital and non-vital tooth bleaching. Experience quick & dramatic results with our high-quality bleaching solutions performed by experts.",
   },
   {
-    title: "Dental Implants",
-    description: "Permanent replacement for missing teeth with titanium posts.",
-    image: "/images/dental_implants.jpg",
+    title: "Tooth-colored Fillings & Aesthetic Corrections",
+    description: "Restore your teeth with natural-looking composite materials.",
+    image: "/images/fillings.jpg",
     details:
-      "Implants are durable, natural-looking replacements. We offer single, multiple, and full-mouth implant solutions.",
+      "We use high-quality tooth-colored composite materials that blend seamlessly with your natural teeth, restoring the strength, function & beauty of your teeth whether you have cavities or need minor aesthetic corrections.",
+  },
+  {
+    title: "Crowns & Veneers",
+    description: "Custom-made crowns & veneers for beauty, strength & durability.",
+    image: "/images/crowns_veneers.jpg",
+    details:
+      "Revive your smile with custom-made crowns & veneers designed for beauty, strength & long-lasting function. Veneers are thin, custom designed shells placed on the front surface of your teeth to enhance appearance.",
+  },
+  {
+    title: "Implants",
+    description: "Single, multiple, or full-mouth dental implant solutions.",
+    image: "/images/implants.jpg",
+    details:
+      "We offer single tooth implants, multiple tooth implants / implant bridges, full mouth implant solutions (All-on-4 / All-on-6), and implant supported dentures with digital planning for precision and long-term success.",
+  },
+  {
+    title: "Extraction (Tooth Removal)",
+    description: "Safe and comfortable tooth extractions using modern anesthesia.",
+    image: "/images/extraction.jpg",
+    details:
+      "At our clinic, we perform extractions with precision and patient comfort as our top priority. Using advanced techniques and modern anesthesia, we ensure a safe, painless, and efficient procedure.",
+  },
+  {
+    title: "Dental Prosthesis",
+    description: "Custom prosthetic solutions for missing teeth.",
+    image: "/images/prosthesis.jpg",
+    details:
+      "Whether you're missing one tooth or several, our prosthetic options are designed to match your unique needs and lifestyle. We combine digital planning & expert craftsmanship for optimal results.",
   },
   {
     title: "Braces & Aligners",
-    description: "Metal and invisible aligners to straighten your teeth perfectly.",
-    image: "/images/braces.jpg",
+    description: "Straighten your teeth and improve bite with orthodontics.",
+    image: "/images/braces_aligners.jpg",
     details:
-      "Choose traditional braces or advanced clear aligners for a discreet smile correction journey.",
+      "Straighten your teeth and improve your bite with expert orthodontic care. Braces and aligners are more than cosmetic—they help align teeth, correct jaw positioning & promote overall oral health.",
   },
   {
     title: "Root Canal Treatment",
-    description: "Pain-relief procedure to remove infection from inside the tooth.",
-    image: "/images/rct.jpg",
+    description: "Treat infected or damaged tooth pulp while preserving teeth.",
+    image: "/images/root_canal.jpg",
     details:
-      "We use modern rotary tools for painless treatment and permanent restoration.",
+      "RCT is a safe & effective procedure used to treat infected or damaged tooth pulp while preserving the original tooth structure. At our clinic, we use modern techniques & materials for a pain-free experience.",
   },
   {
-    title: "Wisdom Tooth Removal",
-    description: "Safe extraction of impacted or painful wisdom teeth.",
-    image: "/images/wisdom.jpg",
+    title: "Periodontal (Gum) Treatment",
+    description: "Comprehensive gum care to protect teeth and oral health.",
+    image: "/images/periodontal.jpg",
     details:
-      "Performed under anesthesia for a pain-free experience with quick healing.",
+      "We provide comprehensive gum care using advanced techniques and a gentle approach to protect your teeth and overall oral health. Services include scaling, root planing, and periodontal maintenance.",
   },
   {
-    title: "Cosmetic Dentistry",
-    description: "Smile makeover with veneers, bonding & reshaping.",
-    image: "/images/cosmetic.jpg",
+    title: "Pediatric Treatment",
+    description: "Specialized dentistry for infants, children, and teens.",
+    image: "/images/pediatric.jpg",
     details:
-      "Transform your smile using advanced cosmetic procedures tailored to your facial aesthetics.",
-  },
-  {
-    title: "Dentures",
-    description: "Comfortable removable teeth replacement options.",
-    image: "/images/dentures.jpg",
-    details:
-      "We provide full and partial dentures with secure, natural-looking fit.",
+      "At Alfa Dental Home, we offer specialized pediatric dentistry designed to meet the unique needs of children—from infants to teens. We create a welcoming, playful, and calm environment for young patients.",
   },
 ];
 
