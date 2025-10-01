@@ -1,13 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import {
+  Phone,
+  Mail,
+  Calendar,
+  Clock,
+  MessageSquare,
+  ClipboardList,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react";
 
 type Appointment = {
   id: number;
-  date: string;
-  time: string;
+  name: string;
+  email: string;
+  phone: string;
+  appointment_date: string;
+  appointment_time?: string | null;
   service: string;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
+  status: "PENDING" | "APPROVED" | "REJECTED" | string;
+  message?: string;
+  admin_notes?: string | null;
+  created_at?: string | null;
 };
 
 export default function StatusPage() {
@@ -16,41 +33,32 @@ export default function StatusPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Mock API function (replace with real API call)
   const fetchAppointments = async (phoneNumber: string) => {
     setLoading(true);
     setError("");
     setAppointments([]);
     try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const res = await fetch(
+        `http://localhost:8000/api/appointments/by_phone/?phone=${encodeURIComponent(
+          phoneNumber
+        )}`
+      );
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
 
-      // Mock data
-      const mockData: Appointment[] = [
-        {
-          id: 1,
-          date: "2025-10-05",
-          time: "10:00 AM",
-          service: "General Checkup",
-          status: "pending",
-        },
-        {
-          id: 2,
-          date: "2025-10-12",
-          time: "2:00 PM",
-          service: "Dental Cleaning",
-          status: "confirmed",
-        },
-      ];
+      const normalize = (s?: string | null) => (s || "").replace(/\D/g, "");
+      const inputNorm = normalize(phoneNumber);
+      const matched = (data || []).filter(
+        (a: any) => normalize(a.phone) === inputNorm
+      );
 
-      // Simulate "phone not found"
-      if (phoneNumber !== "9876543210") {
-        setAppointments([]);
-        setError("No appointments found for this phone number.");
+      if (!matched || matched.length === 0) {
+        setError("No information found for this phone number.");
       } else {
-        setAppointments(mockData);
+        setAppointments(matched);
       }
     } catch (err) {
+      console.error(err);
       setError("Something went wrong. Please try again.");
     }
     setLoading(false);
@@ -65,8 +73,25 @@ export default function StatusPage() {
     fetchAppointments(phone);
   };
 
+  const formatTime = (time?: string | null) => {
+    if (!time) return "—";
+    const [hour, minute] = time.split(":").map(Number);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${hour12}:${minute.toString().padStart(2, "0")} ${ampm}`;
+  };
+
+  const formatDate = (date: string) => {
+    const d = new Date(date);
+    return d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
-    <section className="max-w-4xl mx-auto px-4 py-16">
+    <section className="max-w-5xl mx-auto px-4 py-16">
       <h1 className="text-3xl font-bold text-center text-blue-700 mb-10">
         Check Your Appointment Status
       </h1>
@@ -81,11 +106,11 @@ export default function StatusPage() {
           placeholder="Enter your phone number"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="rounded-xl border border-gray-300 px-4 py-3 w-full sm:w-2/3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-xl border border-gray-300 px-4 py-3 w-full sm:w-2/3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
         />
         <button
           type="submit"
-          className="rounded-xl bg-blue-600 text-white px-6 py-3 hover:bg-blue-700 transition-all"
+          className="rounded-xl bg-blue-600 text-white px-6 py-3 hover:bg-blue-700 transition-all shadow-md"
         >
           Check Status
         </button>
@@ -100,41 +125,130 @@ export default function StatusPage() {
       {/* Appointments */}
       {appointments.length > 0 && (
         <div className="space-y-6">
-          {appointments.map((appt) => (
-            <div
-              key={appt.id}
-              className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center border rounded-xl p-4 shadow-sm hover:shadow-md transition"
+          {appointments.map((a) => (
+            <article
+              key={a.id}
+              className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-transform hover:scale-[1.01]"
             >
-              <div>
-                <p className="text-gray-700">
-                  <span className="font-semibold">Service:</span> {appt.service}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-semibold">Date:</span> {appt.date}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-semibold">Time:</span> {appt.time}
-                </p>
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                {/* Left column */}
+                <div className="flex-1 space-y-5">
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    {a.name}
+                  </h3>
+                  <div className="flex items-center text-sm gap-2">
+                    <Phone size={16} className="text-green-500" />{" "}
+                    <span className="text-gray-500">{a.phone}</span>
+                    <span className="mx-2 text-gray-400">•</span>
+                    <Mail size={16} className="text-indigo-500" />{" "}
+                    <span className="text-gray-500">{a.email}</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
+                    {/* Service */}
+                    <div className="flex items-start gap-2">
+                      <ClipboardList size={20} className="text-blue-500 mt-1" />
+                      <div>
+                        <dt className="text-black font-bold text-base">
+                          Service
+                        </dt>
+                        <dd className="text-gray-800 mt-1">{a.service || "—"}</dd>
+                      </div>
+                    </div>
+
+                    {/* Date */}
+                    <div className="flex items-start gap-2">
+                      <Calendar size={20} className="text-teal-500 mt-1" />
+                      <div>
+                        <dt className="text-black font-bold text-base">Date</dt>
+                        <dd className="text-gray-800 mt-1">
+                          {formatDate(a.appointment_date)}
+                        </dd>
+                      </div>
+                    </div>
+
+                    {/* Time */}
+                    <div className="flex items-start gap-2">
+                      <Clock size={20} className="text-orange-500 mt-1" />
+                      <div>
+                        <dt className="text-black font-bold text-base">Time</dt>
+                        <dd className="text-gray-800 mt-1">
+                          {formatTime(a.appointment_time)}
+                        </dd>
+                      </div>
+                    </div>
+
+                    {/* Message */}
+                    <div className="sm:col-span-2 flex items-start gap-2">
+                      <MessageSquare size={20} className="text-purple-500 mt-1" />
+                      <div>
+                        <dt className="text-black font-bold text-base">Message</dt>
+                        <dd className="text-gray-800 mt-1">{a.message || "—"}</dd>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right column: Status + Notes */}
+                <div className="w-full md:w-60 flex-shrink-0 space-y-4">
+                  <StatusPill appt={a} />
+                  <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                    <p>
+                      <span className="font-medium">Notes:</span>{" "}
+                      {a.admin_notes || "—"}
+                    </p>
+                    <p className="mt-2 text-xs text-gray-400">
+                      Submitted:{" "}
+                      {a.created_at
+                        ? new Date(a.created_at).toLocaleString()
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="mt-2 sm:mt-0">
-                <span
-                  className={`px-4 py-1 rounded-full text-sm font-semibold ${
-                    appt.status === "pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : appt.status === "confirmed"
-                      ? "bg-blue-100 text-blue-800"
-                      : appt.status === "completed"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {appt.status.toUpperCase()}
-                </span>
-              </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
     </section>
+  );
+}
+
+function StatusPill({ appt }: { appt: Appointment }) {
+  const now = new Date();
+  const apptDate = new Date(
+    appt.appointment_date + "T" + (appt.appointment_time || "00:00:00")
+  );
+
+  let label = appt.status;
+  let classes = "bg-gray-200 text-gray-800";
+  let icon = <Clock size={16} className="mr-1" />;
+
+  if (appt.status === "PENDING") {
+    label = "Pending";
+    classes = "bg-yellow-100 text-yellow-800";
+    icon = <Clock size={16} className="mr-1" />;
+  } else if (appt.status === "APPROVED") {
+    if (apptDate < now) {
+      label = "Overdue";
+      classes = "bg-red-100 text-red-800";
+      icon = <AlertTriangle size={16} className="mr-1" />;
+    } else {
+      label = "Approved";
+      classes = "bg-blue-100 text-blue-800";
+      icon = <CheckCircle size={16} className="mr-1" />;
+    }
+  } else if (appt.status === "REJECTED") {
+    label = "Rejected";
+    classes = "bg-gray-200 text-gray-700";
+    icon = <XCircle size={16} className="mr-1" />;
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${classes}`}
+    >
+      {icon} {label}
+    </span>
   );
 }

@@ -126,17 +126,32 @@ export default function HomePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      service: "",
-      date: "",
-      time: "",
-      message: "",
-    });
-    alert("Your appointment has been booked! We'll contact you shortly to confirm.");
+    fetch("http://localhost:8000/api/appointments/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        service: formData.service,
+        appointment_date: formData.date,
+        appointment_time: formData.time,
+        message: formData.message,
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      })
+      .then((data) => {
+        console.log("Created appointment:", data);
+        setFormData({ name: "", email: "", phone: "", service: "", date: "", time: "", message: "" });
+        alert("Your appointment has been booked! We'll contact you shortly to confirm.");
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Failed to submit appointment. Please try again later.");
+      });
   };
 
   const nextTestimonial = () => {
@@ -410,7 +425,6 @@ export default function HomePage() {
   <p className="text-white font-medium mt-4">✨ Cosmetic / Appearance:</p>
   <ul className="text-sm space-y-1 ml-4">
     <li>✔ Crooked / Misaligned Teeth → <span className="text-blue-200 font-semibold">Orthodontics</span></li>
-    <li>✔ Teeth Whitening / Smile Makeover → <span className="text-blue-200 font-semibold">Cosmetic Dentistry</span></li>
   </ul>
 
   {/* Routine */}
@@ -444,12 +458,12 @@ export default function HomePage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email *</label>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email </label>
                       <input
                         type="email"
                         id="email"
                         name="email"
-                        required
+                        
                         value={formData.email}
                         onChange={handleInputChange}
                         className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
