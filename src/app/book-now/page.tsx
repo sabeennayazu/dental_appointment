@@ -13,6 +13,8 @@ export default function BookNowSection() {
     time: "",
     message: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [generalError, setGeneralError] = useState("");
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -24,6 +26,18 @@ export default function BookNowSection() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // clear previous errors
+    setErrors({});
+    setGeneralError("");
+
+    // basic client-side validation for email
+    const email = formData.email || "";
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    if (!emailRegex.test(email)) {
+      setErrors({ email: "Enter a valid email address." });
+      return;
+    }
+
     // POST to Django backend
     fetch("http://localhost:8000/api/appointments/", {
       method: "POST",
@@ -39,8 +53,35 @@ export default function BookNowSection() {
       }),
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
+        const text = await res.text();
+        // try parse JSON
+        let payload: any = null;
+        try {
+          payload = text ? JSON.parse(text) : null;
+        } catch (err) {
+          // not JSON
+        }
+
+        if (!res.ok) {
+          // If DRF returns field errors like {"email": ["Enter a valid email address."]}
+          if (payload && typeof payload === 'object') {
+            const fieldErrors: Record<string, string> = {};
+            Object.keys(payload).forEach((k) => {
+              const v = payload[k];
+              if (Array.isArray(v)) fieldErrors[k] = v.join(' ');
+              else if (typeof v === 'string') fieldErrors[k] = v;
+            });
+            setErrors(fieldErrors);
+            return Promise.reject(new Error('validation'));
+          }
+
+          // otherwise show general error
+          const msg = payload && payload.detail ? payload.detail : text || 'Failed to submit appointment.';
+          setGeneralError(msg.toString());
+          return Promise.reject(new Error(msg));
+        }
+
+        return payload;
       })
       .then((data) => {
         console.log("Created appointment:", data);
@@ -54,10 +95,12 @@ export default function BookNowSection() {
           time: "",
           message: "",
         });
+        setErrors({});
       })
       .catch((err) => {
+        if (err.message === 'validation') return; // already handled
         console.error(err);
-        alert("Failed to submit appointment. Please try again.");
+        if (!generalError) setGeneralError('Failed to submit appointment. Please try again.');
       });
   };
 
@@ -131,6 +174,7 @@ export default function BookNowSection() {
 
               <div className="p-8 lg:p-12">
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  {generalError && <p className="text-sm text-red-600">{generalError}</p>}
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name *</label>
                     <input
@@ -142,6 +186,7 @@ export default function BookNowSection() {
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
+                    {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -156,6 +201,7 @@ export default function BookNowSection() {
                         onChange={handleInputChange}
                         className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
+                      {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                     </div>
                     <div>
                       <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number *</label>
@@ -168,6 +214,7 @@ export default function BookNowSection() {
                         onChange={handleInputChange}
                         className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
+                      {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
                     </div>
                   </div>
 
@@ -183,13 +230,14 @@ export default function BookNowSection() {
                         className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Select a Service</option>
-                        <option value="general">General Checkup</option>
-                        <option value="cosmetic">Periodontist</option>
-                        <option value="orthodontics">Orthodontics</option>
-                        <option value="pediatric">Endodontist</option>
-                        <option value="oral">Oral Surgery</option>
-                        <option value="prosthodontist">Prosthodontist</option>
+                        <option value="General Checkup">General Checkup</option>
+                        <option value="Periodontist">Periodontist</option>
+                        <option value="Orthodontics">Orthodontics</option>
+                        <option value="Endodontist">Endodontist</option>
+                        <option value="Oral Surgery">Oral Surgery</option>
+                        <option value="Prosthodontist">Prosthodontist</option>
                       </select>
+                      {errors.service && <p className="mt-1 text-sm text-red-600">{errors.service}</p>}
                     </div>
                     <div>
                       <label htmlFor="date" className="block text-sm font-medium text-gray-700">Preferred Date *</label>
@@ -202,10 +250,11 @@ export default function BookNowSection() {
                         onChange={handleInputChange}
                         className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
+                      {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
                     </div>
                   </div>
 
-                  <div>
+                    <div>
                     <label htmlFor="time" className="block text-sm font-medium text-gray-700">Preferred Time *</label>
                     <select
                       id="time"
@@ -226,6 +275,7 @@ export default function BookNowSection() {
                       <option value="16:00">4:00 PM</option>
                       <option value="17:00">5:00 PM</option>
                     </select>
+                    {errors.time && <p className="mt-1 text-sm text-red-600">{errors.time}</p>}
                   </div>
                   <div>
   <label htmlFor="message" className="block text-sm font-medium text-gray-700">
@@ -240,6 +290,7 @@ export default function BookNowSection() {
     placeholder="Briefly describe your issue (e.g. Toothache, Gum bleeding, etc.)"
     className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
   />
+  {errors.message && <p className="mt-1 text-sm text-red-600">{errors.message}</p>}
 </div>
 
 

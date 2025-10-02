@@ -495,12 +495,12 @@ export default function HomePage() {
                         className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Select a Service</option>
-                        <option value="general">General Checkup</option>
-                        <option value="cosmetic">Periodontist</option>
-                        <option value="orthodontics">Orthodontics</option>
-                        <option value="pediatric">Endodontist</option>
-                        <option value="oral">Oral Surgery</option>
-                        <option value="prosthodontist">Prosthodontist</option>
+                        <option value="General Checkup">General Checkup</option>
+                        <option value="Periodontist">Periodontist</option>
+                        <option value="Orthodontics">Orthodontics</option>
+                        <option value="Endodontist">Endodontist</option>
+                        <option value="Oral Surgery">Oral Surgery</option>
+                        <option value="Prosthodontist">Prosthodontist</option>
                       </select>
                     </div>
                     <div>

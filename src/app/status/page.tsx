@@ -25,6 +25,11 @@ type Appointment = {
   message?: string;
   admin_notes?: string | null;
   created_at?: string | null;
+  // when result comes from history serializer
+  _source?: "active" | "history";
+  previous_status?: string | null;
+  new_status?: string | null;
+  timestamp?: string | null;
 };
 
 export default function StatusPage() {
@@ -46,16 +51,26 @@ export default function StatusPage() {
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
 
-      const normalize = (s?: string | null) => (s || "").replace(/\D/g, "");
-      const inputNorm = normalize(phoneNumber);
-      const matched = (data || []).filter(
-        (a: any) => normalize(a.phone) === inputNorm
-      );
+      // backend returns a mixed list of active appointments and history entries
+      const list = (data || []) as any[];
 
-      if (!matched || matched.length === 0) {
+      if (!list || list.length === 0) {
         setError("No information found for this phone number.");
       } else {
-        setAppointments(matched);
+        // normalize created time for sorting: active -> created_at, history -> timestamp
+        const withDates = list.map((item) => {
+          const created = item.created_at || item.timestamp || null;
+          return { ...item, __sortDate: created };
+        });
+
+        // sort by most recent first
+        withDates.sort((a, b) => {
+          const ta = a.__sortDate ? new Date(a.__sortDate).getTime() : 0;
+          const tb = b.__sortDate ? new Date(b.__sortDate).getTime() : 0;
+          return tb - ta;
+        });
+
+        setAppointments(withDates as any);
       }
     } catch (err) {
       console.error(err);
@@ -134,7 +149,14 @@ export default function StatusPage() {
                 {/* Left column */}
                 <div className="flex-1 space-y-5">
                   <h3 className="text-xl font-semibold text-gray-800">
-                    {a.name}
+                    <div className="flex items-center gap-3">
+                      <span>{a.name}</span>
+                      {a._source === "history" && (
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                          History
+                        </span>
+                      )}
+                    </div>
                   </h3>
                   <div className="flex items-center text-sm gap-2">
                     <Phone size={16} className="text-green-500" />{" "}
@@ -162,7 +184,7 @@ export default function StatusPage() {
                       <div>
                         <dt className="text-black font-bold text-base">Date</dt>
                         <dd className="text-gray-800 mt-1">
-                          {formatDate(a.appointment_date)}
+                          {a.appointment_date ? formatDate(a.appointment_date) : "—"}
                         </dd>
                       </div>
                     </div>
@@ -198,10 +220,11 @@ export default function StatusPage() {
                       {a.admin_notes || "—"}
                     </p>
                     <p className="mt-2 text-xs text-gray-400">
-                      Submitted:{" "}
-                      {a.created_at
-                        ? new Date(a.created_at).toLocaleString()
-                        : "—"}
+                      {a._source === "history" ? (
+                        <>Status changed: {a.timestamp ? new Date(a.timestamp).toLocaleString() : "—"}</>
+                      ) : (
+                        <>Submitted: {a.created_at ? new Date(a.created_at).toLocaleString() : "—"}</>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -216,9 +239,15 @@ export default function StatusPage() {
 
 function StatusPill({ appt }: { appt: Appointment }) {
   const now = new Date();
-  const apptDate = new Date(
-    appt.appointment_date + "T" + (appt.appointment_time || "00:00:00")
-  );
+
+  let apptDate: Date | null = null;
+  try {
+    if (appt.appointment_date) {
+      apptDate = new Date(appt.appointment_date + "T" + (appt.appointment_time || "00:00:00"));
+    }
+  } catch (e) {
+    apptDate = null;
+  }
 
   let label = appt.status;
   let classes = "bg-gray-200 text-gray-800";
@@ -229,7 +258,7 @@ function StatusPill({ appt }: { appt: Appointment }) {
     classes = "bg-yellow-100 text-yellow-800";
     icon = <Clock size={16} className="mr-1" />;
   } else if (appt.status === "APPROVED") {
-    if (apptDate < now) {
+    if (apptDate && apptDate < now) {
       label = "Overdue";
       classes = "bg-red-100 text-red-800";
       icon = <AlertTriangle size={16} className="mr-1" />;
@@ -245,9 +274,7 @@ function StatusPill({ appt }: { appt: Appointment }) {
   }
 
   return (
-    <span
-      className={`inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${classes}`}
-    >
+    <span className={`inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${classes}`}>
       {icon} {label}
     </span>
   );
