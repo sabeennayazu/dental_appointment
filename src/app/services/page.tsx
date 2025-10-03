@@ -21,7 +21,7 @@ const services: Service[] = [
   {
     title: "Teeth Whitening (Bleaching)",
     description: "Professional teeth bleaching for a brighter, whiter smile.",
-    image: "/images/teeth_whitening.jpg",
+    image: "/images/teeth-whitening.jpg",
     details:
       "Brighten your smile with professional teeth bleaching at Alfa Dental Home. We offer vital and non-vital tooth bleaching. Experience quick & dramatic results with our high-quality bleaching solutions performed by experts.",
   },
@@ -70,7 +70,7 @@ const services: Service[] = [
   {
     title: "Root Canal Treatment",
     description: "Treat infected or damaged tooth pulp while preserving teeth.",
-    image: "/images/root_canal.jpg",
+    image: "/images/rct.jpg",
     details:
       "RCT is a safe & effective procedure used to treat infected or damaged tooth pulp while preserving the original tooth structure. At our clinic, we use modern techniques & materials for a pain-free experience.",
   },

@@ -585,6 +585,7 @@ export default function HomePage() {
 
                   <div>
                     <label htmlFor="doctor" className="block text-sm font-medium text-gray-700">Doctor</label>
+                
                     <select
                       id="doctor"
                       name="doctor"
@@ -596,7 +597,7 @@ export default function HomePage() {
                     >
                       <option value="">{formData.service ? "Select a Doctor" : "Select a Service first"}</option>
                       {doctors.filter((d) => d.service === formData.service).map((doc) => (
-                        <option key={doc.id} value={doc.id}>{doc.name}</option>
+                        <option key={doc.id} value={doc.id}>Dr. {doc.name}</option>
                       ))}
                     </select>
                     {errors.doctor && <p className="mt-1 text-sm text-red-600">{errors.doctor}</p>}
