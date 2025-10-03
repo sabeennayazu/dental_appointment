@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -109,10 +109,38 @@ export default function HomePage() {
     email: "",
     phone: "",
     service: "",
+    doctor: "",
     date: "",
     time: "",
     message: "",
   });
+  const [doctors, setDoctors] = useState<Array<{ id: number; name: string; service: string }>>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [generalError, setGeneralError] = useState("");
+
+  // fetch doctors once
+  useEffect(() => {
+    let mounted = true;
+    setLoadingDoctors(true);
+    fetch("http://localhost:8000/api/doctors/")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!mounted) return;
+        setDoctors(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoadingDoctors(false));
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleDoctorChangeHome = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    const doc = doctors.find((d) => String(d.id) === String(val));
+    setFormData((prev) => ({ ...prev, doctor: val, service: doc ? doc.service : prev.service }));
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -126,6 +154,16 @@ export default function HomePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    setGeneralError("");
+
+    const email = formData.email || "";
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    if (!emailRegex.test(email)) {
+      setErrors({ email: "Enter a valid email address." });
+      return;
+    }
+
     fetch("http://localhost:8000/api/appointments/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -134,23 +172,52 @@ export default function HomePage() {
         email: formData.email,
         phone: formData.phone,
         service: formData.service,
+        doctor: formData.doctor || null,
         appointment_date: formData.date,
         appointment_time: formData.time,
         message: formData.message,
       }),
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
+        const text = await res.text();
+        let payload: any = null;
+        try { payload = text ? JSON.parse(text) : null; } catch {}
+        if (!res.ok) {
+          if (payload && typeof payload === "object") {
+            const fieldErrors: Record<string, string> = {};
+            Object.keys(payload).forEach((k) => {
+              const v = payload[k];
+              if (Array.isArray(v)) fieldErrors[k] = v.join(" ");
+              else if (typeof v === "string") fieldErrors[k] = v;
+            });
+            setErrors(fieldErrors);
+            return Promise.reject(new Error("validation"));
+          }
+          const msg = payload?.detail || text || "Failed to submit appointment.";
+          setGeneralError(msg.toString());
+          return Promise.reject(new Error(msg));
+        }
+        return payload;
       })
       .then((data) => {
         console.log("Created appointment:", data);
-        setFormData({ name: "", email: "", phone: "", service: "", date: "", time: "", message: "" });
-        alert("Your appointment has been booked! We'll contact you shortly to confirm.");
+        alert("Your appointment request has been submitted!");
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          service: "",
+          doctor: "",
+          date: "",
+          time: "",
+          message: "",
+        });
+        setErrors({});
       })
       .catch((err) => {
+        if (err.message === "validation") return;
         console.error(err);
-        alert("Failed to submit appointment. Please try again later.");
+        if (!generalError) setGeneralError("Failed to submit appointment. Please try again.");
       });
   };
 
@@ -160,6 +227,11 @@ export default function HomePage() {
 
   const prevTestimonial = () => {
     setCurrentTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
+  };
+  const handleDoctorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    const doc = doctors.find((d) => String(d.id) === String(val));
+    setFormData((s) => ({ ...s, doctor: val, service: doc ? doc.service : s.service }));
   };
 
   return (
@@ -442,81 +514,110 @@ export default function HomePage() {
               </div>
 
               <div className="p-8 lg:p-12">
-                <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {generalError && <p className="text-sm text-red-600">{generalError}</p>}
+
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name *</label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name *</label>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email *</label>
                     <input
-                      type="text"
-                      id="name"
-                      name="name"
+                      type="email"
+                      id="email"
+                      name="email"
                       required
-                      value={formData.name}
+                      value={formData.email}
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
+                    {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number *</label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      required
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+                  </div>
+                </div>
+
+                {/* --- NEW LAYOUT: Service / Doctor --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="service" className="block text-sm font-medium text-gray-700">Service *</label>
+                    <select
+                      id="service"
+                      name="service"
+                      required
+                      value={formData.service}
+                      onChange={(e) => { handleInputChange(e); setFormData((s) => ({ ...s, doctor: "" })); }}
+                      className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select a Service</option>
+                      <option value="General Checkup">General Checkup</option>
+                      <option value="Periodontist">Periodontist</option>
+                      <option value="Orthodontics">Orthodontics</option>
+                      <option value="Endodontist">Endodontist</option>
+                      <option value="Oral Surgery">Oral Surgery</option>
+                      <option value="Prosthodontist">Prosthodontist</option>
+                    </select>
+                    {errors.service && <p className="mt-1 text-sm text-red-600">{errors.service}</p>}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number *</label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        required
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
+                  <div>
+                    <label htmlFor="doctor" className="block text-sm font-medium text-gray-700">Doctor</label>
+                    <select
+                      id="doctor"
+                      name="doctor"
+                      required
+                      value={formData.doctor}
+                      onChange={handleDoctorChange}
+                      disabled={!formData.service || loadingDoctors}
+                      className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                    >
+                      <option value="">{formData.service ? "Select a Doctor" : "Select a Service first"}</option>
+                      {doctors.filter((d) => d.service === formData.service).map((doc) => (
+                        <option key={doc.id} value={doc.id}>{doc.name}</option>
+                      ))}
+                    </select>
+                    {errors.doctor && <p className="mt-1 text-sm text-red-600">{errors.doctor}</p>}
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="service" className="block text-sm font-medium text-gray-700">Service *</label>
-                      <select
-                        id="service"
-                        name="service"
-                        required
-                        value={formData.service}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">Select a Service</option>
-                        <option value="General Checkup">General Checkup</option>
-                        <option value="Periodontist">Periodontist</option>
-                        <option value="Orthodontics">Orthodontics</option>
-                        <option value="Endodontist">Endodontist</option>
-                        <option value="Oral Surgery">Oral Surgery</option>
-                        <option value="Prosthodontist">Prosthodontist</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">Preferred Date *</label>
-                      <input
-                        type="date"
-                        id="date"
-                        name="date"
-                        required
-                        value={formData.date}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
+                {/* --- NEW LAYOUT: Date / Time --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="date" className="block text-sm font-medium text-gray-700">Preferred Date *</label>
+                    <input
+                      type="date"
+                      id="date"
+                      name="date"
+                      required
+                      value={formData.date}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
                   </div>
-
                   <div>
                     <label htmlFor="time" className="block text-sm font-medium text-gray-700">Preferred Time *</label>
                     <select
@@ -538,33 +639,37 @@ export default function HomePage() {
                       <option value="16:00">4:00 PM</option>
                       <option value="17:00">5:00 PM</option>
                     </select>
+                    {errors.time && <p className="mt-1 text-sm text-red-600">{errors.time}</p>}
                   </div>
-                  <div>
-  <label htmlFor="message" className="block text-sm font-medium text-gray-700">
-    Problem Description (Optional)
-  </label>
-  <textarea
-    id="message"
-    name="message"
-    rows={3}
-    value={formData.message}
-    onChange={handleInputChange}
-    placeholder="Briefly describe your issue (e.g. Toothache, Gum bleeding, etc.)"
-    className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-  />
-</div>
+                </div>
 
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+                    Problem Description (Optional)
+                  </label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    rows={3}
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    placeholder="Briefly describe your issue (e.g. Toothache, Gum bleeding, etc.)"
+                    className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {errors.message && <p className="mt-1 text-sm text-red-600">{errors.message}</p>}
+                </div>
 
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      className="w-full flex justify-center py-3 px-4 rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
-                    >
-                      Book Appointment
-                    </button>
-                  </div>
-                </form>
-              </div>
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="w-full flex justify-center py-3 px-4 rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
+                  >
+                    Book Appointment
+                  </button>
+                </div>
+
+              </form>
+            </div>
             </div>
           </div>
         </div>
