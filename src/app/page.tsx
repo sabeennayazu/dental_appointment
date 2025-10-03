@@ -244,77 +244,73 @@ export default function HomePage() {
 
       {/* Hero Section – previous UI style, upgraded */}
       <section className="relative max-w-7xl mx-auto my-10 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl p-10 md:p-16 shadow-xl ring-1 ring-white/60">
-          {/* Left Content */}
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur px-3 py-1 text-sm shadow-sm ring-1 ring-black/5">
-              <Check className="h-4 w-4 text-blue-600" /> Trusted dental care in Nepal
-            </div>
-            <h1 className="mt-4 text-4xl md:text-5xl lg:text-6xl font-extrabold text-blue-800 leading-tight">
-              Your Perfect Smile Starts Here
-            </h1>
-            <p className="mt-4 text-lg md:text-xl text-slate-700">
-              Experience gentle, professional dental care in a comfortable environment.
-            </p>
+  <div className="flex flex-col md:flex-row items-center gap-10 bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl p-8 md:p-16 shadow-xl ring-1 ring-white/60">
+    
+    {/* Left Side (Text + Buttons + Highlights) */}
+    <div className="w-fit">
+      {/* Tag */}
+      <div className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur px-3 py-1 text-sm shadow-sm ring-1 ring-black/5">
+        <Check className="h-4 w-4 text-blue-600" /> Trusted dental care in Nepal
+      </div>
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-4">
-              <a
-                href="#book-now"
-                className="inline-flex items-center justify-center px-8 py-4 rounded-full text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >
-                Book Your Appointment
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </a>
-              <a
-                href="#services"
-                className="inline-flex items-center justify-center px-8 py-4 rounded-full text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 shadow-md transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >
-                Our Services
-              </a>
-            </div>
-            {/* New Highlights under buttons */}
-            <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
-              <div>
-                <span className="text-3xl font-bold text-green-600 flex items-center justify-center gap-2">
-                  10+ Years
-                </span>
-                <p className="mt-1 text-gray-600">of Excellence</p>
-              </div>
+      {/* Heading */}
+      <h1 className="mt-4 text-4xl md:text-5xl lg:text-6xl font-extrabold text-blue-800 leading-tight">
+        Your Perfect Smile Starts Here
+      </h1>
+      <p className="mt-4 text-lg md:text-xl text-slate-700">
+        Experience gentle, professional dental care in a comfortable environment.
+      </p>
 
-              <div>
-                <span className="text-3xl font-bold text-yellow-500 flex items-center justify-center gap-2">
-                  5,000+
-                </span>
-                <p className="mt-1 text-gray-600">Happy Patients</p>
-              </div>
+      {/* Buttons */}
+      <div className="mt-6 flex flex-col sm:flex-row gap-4 order-3 md:order-2">
+        <a
+          href="#book-now"
+          className="w-full sm:w-auto flex justify-center items-center px-8 py-4 rounded-full text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          Book Your Appointment
+          <ChevronRight className="ml-2 h-5 w-5" />
+        </a>
+        <a
+          href="#services"
+          className="w-full sm:w-auto flex justify-center items-center px-8 py-4 rounded-full text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 shadow-md transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          Our Services
+        </a>
+      </div>
 
-              <div>
-                <span className="text-3xl font-bold text-blue-600 flex items-center justify-center gap-2">
-                  Certified
-                </span>
-                <p className="mt-1 text-gray-600">Specialists</p>
-              </div>
-            </div>
-
-
-
-          </div>
-
-          {/* Right Image */}
-          <div className="hidden md:flex justify-center">
-            <div className="relative w-150 h-100">
-              <div className="absolute -inset-3 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-3xl opacity-20 blur-xl" />
-              <div className="relative w-full h-full bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
-                <img
-                  src="/images/general.jpg"
-                  alt="Smiling dentist with patient"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
+      {/* Highlights */}
+      <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center order-4 md:order-3">
+        <div>
+          <span className="text-3xl font-bold text-green-600 flex items-center justify-center gap-2">10+ Years</span>
+          <p className="mt-1 text-gray-600">of Excellence</p>
         </div>
-      </section>
+        <div>
+          <span className="text-3xl font-bold text-yellow-500 flex items-center justify-center gap-2">5,000+</span>
+          <p className="mt-1 text-gray-600">Happy Patients</p>
+        </div>
+        <div>
+          <span className="text-3xl font-bold text-blue-600 flex items-center justify-center gap-2">Certified</span>
+          <p className="mt-1 text-gray-600">Specialists</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Right Side (Image) */}
+    <div className="w-full md:w-1/2 flex justify-center md:justify-end order-2 md:order-2">
+      <div className="relative w-full max-w-md h-80 md:h-96">
+        <div className="absolute -inset-3 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-3xl opacity-20 blur-xl" />
+        <div className="relative w-full h-full bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
+          <img
+            src="/images/general.jpg"
+            alt="Smiling dentist with patient"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 
       {/* Services Section */}
       <section id="services" className="py-20">
