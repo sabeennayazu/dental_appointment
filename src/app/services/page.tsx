@@ -94,8 +94,8 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   return (
-    <section className="w-full max-w-6xl mx-auto px-6 py-12 relative">
-      <h1 className="text-3xl md:text-4xl font-bold text-center text-blue-700 mb-10">
+    <section className="w-full max-w-6xl mx-auto px-6 py-12 relative bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+      <h1 className="text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent mb-10">
         Our Dental Services
       </h1>
 

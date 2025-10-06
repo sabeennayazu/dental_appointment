@@ -219,7 +219,7 @@ export default function StatusPage() {
   const monthDays = useMemo(() => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
-    const startWeekDay = (start.getDay() + 6) % 7; // Monday=0
+  const startWeekDay = start.getDay(); // Sunday=0
     const days: Date[] = [];
     for (let i = 0; i < startWeekDay; i++) {
       const d = new Date(start);
@@ -358,7 +358,7 @@ useEffect(() => {
   return (
     <section className="max-w-7xl mx-auto px-4 py-10">
       
-      <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">Appointment Status & Calendar</h1>
+      <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">Appointment Status</h1>
 
       {/* SEARCH: only visible initially (heading + search box + check status) */}
       <div className="bg-white rounded-2xl p-4 mb-6 flex items-center justify-center">
@@ -553,7 +553,7 @@ useEffect(() => {
                 </div>
 
                 <div className="grid grid-cols-7 gap-2 text-xs font-medium text-gray-500 mb-2">
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
                     <div key={d} className="text-center">{d}</div>
                   ))}
                 </div>
@@ -581,6 +581,7 @@ useEffect(() => {
                       });
 
                       const baseBg = inCurrent ? "" : "bg-gray-50 text-gray-400";
+                      const isSaturday = d.getDay() === 6;
 
                       // date text color: if any OVERDUE present, use white for contrast
                       const dateTextCls = statuses.includes("OVERDUE") ? "text-white" : (inCurrent ? "text-gray-700" : "text-gray-400");
@@ -592,7 +593,7 @@ useEffect(() => {
                           onMouseEnter={() => setHoverDate(key)}
                           onMouseLeave={() => setHoverDate(null)}
                           title={dayAppts.length ? `${dayAppts.length} appointment(s)` : "No appointments"}
-                          className={`relative h-16 rounded-xl border p-0 text-left transition-colors overflow-hidden ${baseBg} ${isSelected ? "ring-2 ring-blue-400" : ""}`}
+                          className={`relative h-16 rounded-xl ${isSaturday ? 'border-2 border-red-400' : 'border'} p-0 text-left transition-colors overflow-hidden ${baseBg} ${isSelected ? "ring-2 ring-blue-400" : ""}`}
                         >
                           {/* colored segments background */}
                           {statuses.length > 0 && (

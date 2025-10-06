@@ -46,7 +46,7 @@ export default function Navbar() {
           <a href="/" className="flex items-center space-x-2 group">
             <span className="text-3xl text-blue-600">🦷</span>
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-              Alfa Dental
+              Alfa Dental Home
             </span>
           </a>
 

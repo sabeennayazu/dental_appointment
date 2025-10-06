@@ -207,18 +207,30 @@ export default function BookNowSection() {
                     {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                   </div>
                   <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number *</label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      required
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-                  </div>
+  <label
+    htmlFor="phone"
+    className="block text-sm font-medium text-gray-700"
+  >
+    Phone Number *
+  </label>
+  <input
+    type="tel"
+    id="phone"
+    name="phone"
+    required
+    placeholder="10 digit number"
+    value={formData.phone}
+    onChange={handleInputChange}
+    maxLength={10}               // ✅ hard limit to 10 characters
+    pattern="\d{10}"             // ✅ ensures only 10 digits on submit
+    inputMode="numeric"          // ✅ mobile shows number pad
+    className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+  />
+  {errors.phone && (
+    <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+  )}
+</div>
+
                 </div>
 
                 {/* --- NEW LAYOUT: Service / Doctor --- */}
@@ -275,6 +287,7 @@ export default function BookNowSection() {
                       required
                       value={formData.date}
                       onChange={handleInputChange}
+                      min={new Date().toISOString().split("T")[0]} 
                       className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
