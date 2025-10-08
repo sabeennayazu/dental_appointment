@@ -89,17 +89,16 @@ const services: Service[] = [
       "At Alfa Dental Home, we offer specialized pediatric dentistry designed to meet the unique needs of children—from infants to teens. We create a welcoming, playful, and calm environment for young patients.",
   },
 ];
-
 export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   return (
-    <section className="w-full max-w-6xl mx-auto px-6 py-12 relative bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+    <section className="w-full min-h-screen px-6 py-12 bg-gradient-to-b from-white via-cyan-200/40 to-white">
       <h1 className="text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent mb-10">
         Our Dental Services
       </h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
         {services.map((service, index) => (
           <div
             key={index}
@@ -131,7 +130,6 @@ export default function ServicesPage() {
             className="bg-white w-[90%] max-w-lg rounded-xl shadow-lg p-6 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
               onClick={() => setSelectedService(null)}
@@ -139,7 +137,6 @@ export default function ServicesPage() {
               ✕
             </button>
 
-            {/* Image */}
             <Image
               src={selectedService.image}
               alt={selectedService.title}

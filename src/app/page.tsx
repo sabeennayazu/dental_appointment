@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Check,
@@ -62,19 +64,19 @@ const benefits = [
       "We use state-of-the-art equipment for accurate diagnoses and effective treatments.",
     icon: <Award className="h-6 w-6" />,
   },
-  
-    {
-  title: "Personalized Care",
-  description:
-    "Every patient receives tailored treatment plans designed to meet their unique dental needs.",
-  icon: <Star className="h-6 w-6" />,
-},
 
- {
-  title: "Flexible Scheduling",
-  description: "Choose from a wide range of appointment slots designed to suit your routine.",
-  icon: <Calendar className="h-6 w-6" />,
-}
+  {
+    title: "Personalized Care",
+    description:
+      "Every patient receives tailored treatment plans designed to meet their unique dental needs.",
+    icon: <Star className="h-6 w-6" />,
+  },
+
+  {
+    title: "Flexible Scheduling",
+    description: "Choose from a wide range of appointment slots designed to suit your routine.",
+    icon: <Calendar className="h-6 w-6" />,
+  }
 
 
 ];
@@ -85,7 +87,7 @@ const testimonials = [
     name: "Sunita Lamsal",
     role: "Patient",
     content:
-      "The team at Alfa Dental made me feel so comfortable during my procedure. The office is beautiful and the staff is incredibly professional.",
+      "The team at Alfa Dental Home made me feel so comfortable during my procedure. The office is beautiful and the staff is incredibly professional.",
     rating: 5,
   },
   {
@@ -108,6 +110,11 @@ const testimonials = [
 
 export default function HomePage() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [activeSection, setActiveSection] = useState(0);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const isAnimatingRef = useRef(false);
+  const touchStartYRef = useRef<number | null>(null);
+  const sectionIds = ["hero", "services", "why-choose-us", "testimonials", "book-now", "contact"] as const;
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -238,86 +245,186 @@ export default function HomePage() {
     setFormData((s) => ({ ...s, doctor: val, service: doc ? doc.service : s.service }));
   };
 
+  // IntersectionObserver to track active section
+  useEffect(() => {
+    const root = containerRef.current || undefined;
+    const sections = Array.from((containerRef.current || document).querySelectorAll<HTMLElement>('section[data-snap]'));
+    if (sections.length === 0) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) {
+          const idx = sections.indexOf(visible[0].target as HTMLElement);
+          if (idx >= 0) setActiveSection(idx);
+        }
+      },
+      { root, threshold: [0.5, 0.75, 1] }
+    );
+    sections.forEach((s) => obs.observe(s));
+    return () => obs.disconnect();
+  }, []);
+
+  // Update URL hash to reflect active section for navbar highlighting/deep links
+  useEffect(() => {
+    const id = sectionIds[activeSection];
+    if (!id) return;
+    const newHash = `#${id}`;
+    if (typeof window !== 'undefined' && window.location.hash !== newHash) {
+      window.history.replaceState(null, "", newHash);
+    }
+  }, [activeSection]);
+
+  // Helper to snap to index
+  const snapTo = useCallback((index: number) => {
+    const sections = Array.from((containerRef.current || document).querySelectorAll<HTMLElement>('section[data-snap]'));
+    if (index < 0 || index >= sections.length) return;
+    const el = sections[index];
+    isAnimatingRef.current = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // release lock after animation duration
+    window.setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 650);
+  }, []);
+
+  // Wheel handler for section-by-section navigation
+  useEffect(() => {
+    const root = containerRef.current || window;
+    let lastWheel = 0;
+    const onWheel = (e: WheelEvent) => {
+      const now = Date.now();
+      if (isAnimatingRef.current || now - lastWheel < 500) return;
+      if (Math.abs(e.deltaY) < 20) return; // ignore tiny trackpad nudges
+      lastWheel = now;
+      e.preventDefault();
+      const dir = e.deltaY > 0 ? 1 : -1;
+      snapTo(activeSection + dir);
+    };
+    root.addEventListener('wheel', onWheel as unknown as EventListener, { passive: false });
+    return () => root.removeEventListener('wheel', onWheel as unknown as EventListener);
+  }, [activeSection, snapTo]);
+
+  // Touch swipe for mobile
+  useEffect(() => {
+    const rootEl = containerRef.current;
+    if (!rootEl) return;
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartYRef.current = e.touches[0].clientY;
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      const startY = touchStartYRef.current;
+      touchStartYRef.current = null;
+      if (startY == null) return;
+      const endY = e.changedTouches[0].clientY;
+      const delta = startY - endY;
+      if (Math.abs(delta) < 40 || isAnimatingRef.current) return;
+      const dir = delta > 0 ? 1 : -1;
+      snapTo(activeSection + dir);
+    };
+    rootEl.addEventListener('touchstart', onTouchStart, { passive: true });
+    rootEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      rootEl.removeEventListener('touchstart', onTouchStart as any);
+      rootEl.removeEventListener('touchend', onTouchEnd as any);
+    };
+  }, [activeSection, snapTo]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50 to-white text-gray-900">
+    <main ref={containerRef} className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth bg-gradient-to-b from-white via-blue-50 to-white text-gray-900">
       {/* Decorative background blobs */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-200 blur-3xl opacity-40" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-200 blur-3xl opacity-40" />
       </div>
 
-      {/* Hero Section – previous UI style, upgraded */}
-      <section className="relative max-w-7xl mx-auto my-12 px-6 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center gap-10 bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl p-8 md:p-16 shadow-xl ring-1 ring-white/60">
+      {/* Hero Section */}
+      <section id="hero" data-snap className="snap-start snap-always h-screen flex items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.5 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative max-w-7xl mx-auto w-full p-8 md:p-16 sm:px-6 lg:px-8"
+        >
+          <div className="flex flex-col md:flex-row items-center gap-10 bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl p-12 md:p-16shadow-xl ring-1 ring-white/60">
 
-          {/* Left Side (Text + Buttons + Highlights) */}
-          <div className="w-fit">
-            {/* Tag */}
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur px-3 py-1 text-sm shadow-sm ring-1 ring-black/5">
-              <Check className="h-4 w-4 text-blue-600" /> Trusted dental care in Nepal
+            {/* Left Side (Text + Buttons + Highlights) */}
+            <div className="w-fit">
+              {/* Tag */}
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur px-3 py-1 text-sm shadow-sm ring-1 ring-black/5">
+                <Check className="h-4 w-4 text-blue-600" /> Trusted dental care in Nepal
+              </div>
+
+              {/* Heading */}
+              <h1 className="mt-4 text-4xl md:text-5xl lg:text-6xl font-extrabold text-blue-800 leading-tight">
+                Your Perfect Smile Starts Here
+              </h1>
+              <p className="mt-4 text-lg md:text-xl text-slate-700">
+                Experience gentle, professional dental care in a comfortable environment.
+              </p>
+
+              {/* Buttons */}
+              <div className="mt-6 flex flex-col sm:flex-row gap-4 order-3 md:order-2">
+                <a
+                  href="#book-now"
+                  className="w-full sm:w-auto flex justify-center items-center px-8 py-4 rounded-full text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  Book Your Appointment
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </a>
+                <a
+                  href="#services"
+                  className="w-full sm:w-auto flex justify-center items-center px-8 py-4 rounded-full text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 shadow-md transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  Our Services
+                </a>
+              </div>
+
+              {/* Highlights */}
+              <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center order-4 md:order-3">
+                <div>
+                  <span className="text-3xl font-bold text-green-600 flex items-center justify-center gap-2">10+ Years</span>
+                  <p className="mt-1 text-gray-600">of Excellence</p>
+                </div>
+                <div>
+                  <span className="text-3xl font-bold text-yellow-500 flex items-center justify-center gap-2">5,000+</span>
+                  <p className="mt-1 text-gray-600">Happy Patients</p>
+                </div>
+                <div>
+                  <span className="text-3xl font-bold text-blue-600 flex items-center justify-center gap-2">Certified</span>
+                  <p className="mt-1 text-gray-600">Specialists</p>
+                </div>
+              </div>
             </div>
 
-            {/* Heading */}
-            <h1 className="mt-4 text-4xl md:text-5xl lg:text-6xl font-extrabold text-blue-800 leading-tight">
-              Your Perfect Smile Starts Here
-            </h1>
-            <p className="mt-4 text-lg md:text-xl text-slate-700">
-              Experience gentle, professional dental care in a comfortable environment.
-            </p>
-
-            {/* Buttons */}
-            <div className="mt-6 flex flex-col sm:flex-row gap-4 order-3 md:order-2">
-              <a
-                href="#book-now"
-                className="w-full sm:w-auto flex justify-center items-center px-8 py-4 rounded-full text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >
-                Book Your Appointment
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </a>
-              <a
-                href="#services"
-                className="w-full sm:w-auto flex justify-center items-center px-8 py-4 rounded-full text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 shadow-md transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >
-                Our Services
-              </a>
-            </div>
-
-            {/* Highlights */}
-            <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center order-4 md:order-3">
-              <div>
-                <span className="text-3xl font-bold text-green-600 flex items-center justify-center gap-2">10+ Years</span>
-                <p className="mt-1 text-gray-600">of Excellence</p>
-              </div>
-              <div>
-                <span className="text-3xl font-bold text-yellow-500 flex items-center justify-center gap-2">5,000+</span>
-                <p className="mt-1 text-gray-600">Happy Patients</p>
-              </div>
-              <div>
-                <span className="text-3xl font-bold text-blue-600 flex items-center justify-center gap-2">Certified</span>
-                <p className="mt-1 text-gray-600">Specialists</p>
+            {/* Right Side (Image) */}
+            <div className="w-full md:w-1/2 flex justify-center md:justify-end order-2 md:order-2">
+              <div className="relative w-full max-w-md h-80 md:h-96">
+                <div className="absolute -inset-3 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-3xl opacity-20 blur-xl" />
+                <div className="relative w-full h-full bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
+                  <img
+                    src="/images/general.jpg"
+                    alt="Smiling dentist with patient"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Right Side (Image) */}
-          <div className="w-full md:w-1/2 flex justify-center md:justify-end order-2 md:order-2">
-            <div className="relative w-full max-w-md h-80 md:h-96">
-              <div className="absolute -inset-3 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-3xl opacity-20 blur-xl" />
-              <div className="relative w-full h-full bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
-                <img
-                  src="/images/general.jpg"
-                  alt="Smiling dentist with patient"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Services Section */}
-      <section id="services" className=" mt-2 py-20 bg-[url('/images/.jpg')] bg-cover bg-no-repeat" >
-        <div className="max-w-7xl mx-auto px-4 py-6  sm:px-6 lg:px-8">
+      <section id="services" data-snap className="snap-start snap-always h-screen flex items-center bg-gradient-to-b from-white via-white/20 to-cyan-500/50">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.5 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 w-full"
+        >
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent sm:text-4xl">Our Dental Services</h2>
             <p className="mt-3 text-xl text-gray-500">Comprehensive dental care for the whole family</p>
@@ -348,178 +455,257 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Why Choose Us Section */}
-      <section id="why-choose-us" className="py-20 bg-gradient-to-b from-white-50  to-blue-100/40">
-  <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-12 px-6 lg:px-10">
-
+      <section
+  id="why-choose-us"
+  data-snap
+  className="snap-start snap-always h-screen flex items-center bg-gradient-to-b from-white via-white-50 to-blue-500/40 overflow-hidden"
+>
+  <motion.div
+    initial={{ opacity: 0, y: 24 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: false, amount: 0.4 }}
+    transition={{ duration: 0.5, ease: "easeOut" }}
+    className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-12 px-6 lg:px-10 w-full"
+  >
     {/* Left: Text + Benefits */}
     <div className="space-y-10">
-      {/* Header */}
-      <div className="text-left">
-        <h2 className="text-4xl font-extrabold bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent">
+      {/* Header block */}
+      <motion.div
+        initial={{ opacity: 0, x: -150, rotate: -5 }}
+        whileInView={{ opacity: 1, x: 0, rotate: 0 }}
+        viewport={{ once: false, amount: 0.5 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="text-left"
+      >
+        <h2 className="text-4xl font-extrabold bg-gradient-to-r from-blue-700 to-cyan-400 bg-clip-text text-transparent">
           Why Choose Alfa Dental?
         </h2>
         <p className="mt-4 max-w-2xl text-lg text-gray-700 leading-relaxed">
           We're committed to providing exceptional dental care with a personal touch.
         </p>
         <div className="mt-4 h-1 w-24 bg-blue-500 rounded-full"></div>
-      </div>
+      </motion.div>
 
-      {/* Benefits */}
+      {/* Benefits (cards) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {[benefits.slice(0, 2), benefits.slice(2)].map((col, colIdx) => (
           <div key={colIdx} className="space-y-6">
-            {col.map((benefit, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-4 p-5 rounded-2xl bg-white/90 backdrop-blur-lg border border-blue-100 shadow-md hover:shadow-xl hover:bg-blue-50/60 transition-all duration-300"
-              >
-                <div className="flex items-center justify-center h-12 w-12 rounded-xl  text-blue-700 shadow-inner">
-                  {benefit.icon}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 tracking-tight">
-                    {benefit.title}
-                  </h3>
-                  <p className="mt-1 text-gray-600 leading-snug">
-                    {benefit.description}
-                  </p>
-                </div>
-              </div>
-            ))}
+            {col.map((benefit, index) => {
+              // Different motion directions for each card
+              const directions = [
+                { x: -120, y: -40, rotate: -8 },
+                { x: -100, y: 30, rotate: -4 },
+                { x: -140, y: -20, rotate: 5 },
+                { x: -110, y: 40, rotate: 8 },
+              ];
+              const dir = directions[index % directions.length];
+
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, ...dir }}
+                  whileInView={{ opacity: 1, x: 0, y: 0, rotate: 0 }}
+                  viewport={{ once: false, amount: 0.4 }}
+                  transition={{
+                    duration: 0.8,
+                    delay: index * 0.15,
+                    ease: "easeOut",
+                  }}
+                  whileHover={{
+                    scale: 1.05,
+                    y: -10,
+                    boxShadow:
+                      "0 20px 35px rgba(0, 0, 0, 0.08), 0 10px 15px rgba(0, 0, 0, 0.05)",
+                  }}
+                  className="flex items-start gap-4 p-5 rounded-2xl bg-white/90 border border-blue-100 shadow-md"
+                >
+                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-blue-200 to-blue-100 text-blue-700 shadow-inner">
+                    {benefit.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 tracking-tight">
+                      {benefit.title}
+                    </h3>
+                    <p className="mt-1 text-gray-600 leading-snug">
+                      {benefit.description}
+                    </p>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         ))}
       </div>
     </div>
 
     {/* Right: Image */}
-    <div className="relative hidden lg:block h-full">
-      <img
-        src="/images/room.jpg"
-        alt="Dental clinic room"
-        className="w-full h-full object-cover rounded-2xl shadow-xl"
-      />
-      <div className="absolute inset-0 bg-gradient-to-l from-white/40 to-transparent rounded-2xl"></div>
-    </div>
-  </div>
+    <motion.div
+      initial={{ opacity: 0, x: 150, rotateY: 15 }}
+      whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
+      viewport={{ once: false, amount: 0.5 }}
+      transition={{ duration: 1, ease: "easeOut" }}
+      className="relative hidden lg:flex justify-center items-center h-full"
+    >
+      <motion.div
+        whileHover={{
+          scale: 1.05,
+          rotateY: 5,
+          y: -8,
+          boxShadow:
+            "0 25px 40px rgba(0, 0, 0, 0.15), 0 10px 20px rgba(0, 0, 0, 0.08)",
+          transition: { type: "spring", stiffness: 150, damping: 12 },
+        }}
+        className="relative w-full h-[80%] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-blue-100"
+      >
+        <img
+          src="/images/room.jpg"
+          alt="Dental clinic room"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-l from-white/40 to-transparent rounded-2xl"></div>
+      </motion.div>
+    </motion.div>
+  </motion.div>
 </section>
 
-      {/* Testimonials Section (carousel) */}
-      <section
-        id="testimonials"
-        className="py-20 mb-20 bg-gradient-to-b from-white/60 to-blue-50/60"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Two-column layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
 
-            {/* Left Half: Image */}
-            <div className="h-full">
-              <img
-                src="/images/group.jpg"
-                alt="Patient testimonial"
-                className="w-full h-full object-cover rounded-2xl shadow-xl"
-              />
-            </div>
 
-            {/* Right Half: Heading + Testimonials */}
-            <div className="flex flex-col space-y-10">
-              {/* Heading */}
-              <div>
-                <h2 className="text-3xl font-extrabold text-center bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent  sm:text-4xl">
-                  What Our Patients Say
-                </h2>
-                <p className="mt-3 text-xl text-center text-gray-600">
-                  Don't just take our word for it - hear from our patients
-                </p>
+
+       <section
+      id="testimonials"
+      data-snap
+      className="snap-start h-screen flex items-center bg-gradient-to-b from-white to-cyan-300/40"
+    >
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        {/* Left: Image pops from left */}
+        <motion.div
+          initial={{ opacity: 0, x: -200, y: 50, rotate: -8 }}
+          whileInView={{ opacity: 1, x: 0, y: 0, rotate: 0 }}
+          viewport={{ once: false, amount: 0.4 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          whileHover={{ scale: 1.07, rotate: 2, transition: { duration: 0.2 } }}
+          className="rounded-2xl shadow-xl overflow-hidden"
+        >
+          <img
+            src="/images/group.jpg"
+            alt="Patient testimonial"
+            className="w-full h-full object-cover"
+          />
+        </motion.div>
+
+        {/* Right Side */}
+        <div className="flex flex-col space-y-10">
+          {/* Heading from top-right */}
+          <motion.div
+            initial={{ opacity: 0, y: -100, x: 80 }}
+            whileInView={{ opacity: 1, y: 0, x: 0 }}
+            viewport={{ once: false, amount: 0.4 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <h2 className="text-3xl font-extrabold text-center bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent sm:text-4xl">
+              What Our Patients Say
+            </h2>
+            <p className="mt-3 text-xl text-center text-gray-600">
+              Don't just take our word for it - hear from our patients
+            </p>
+          </motion.div>
+
+          {/* Carousel from bottom-right */}
+          <motion.div
+            initial={{ opacity: 0, y: 120, x: 80 }}
+            whileInView={{ opacity: 1, y: 0, x: 0 }}
+            viewport={{ once: false, amount: 0.4 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+            whileHover={{ y: -8, scale: 1.02, transition: { duration: 0.15 } }}
+            className="bg-white/80 backdrop-blur rounded-2xl shadow-xl p-8 ring-1 ring-black/5 relative"
+          >
+            <Quote className="absolute top-8 left-8 text-blue-100 h-16 w-16 -z-0" />
+            <div className="relative z-10">
+              <div className="flex mb-6">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-5 w-5 ${
+                      i < testimonials[currentTestimonial].rating
+                        ? "text-yellow-400"
+                        : "text-gray-300"
+                    }`}
+                    fill={
+                      i < testimonials[currentTestimonial].rating
+                        ? "currentColor"
+                        : "none"
+                    }
+                  />
+                ))}
               </div>
-
-              {/* Testimonials */}
-              <div className="relative">
-                <div className="relative bg-white/80 backdrop-blur rounded-2xl shadow-xl p-8 md:p-10 ring-1 ring-black/5">
-                  <Quote className="absolute top-8 left-8 text-blue-100 h-16 w-16 -z-0" />
-                  <div className="relative z-10">
-                    <div
-                      className="flex items-center mb-6"
-                      aria-label={`Rating ${testimonials[currentTestimonial].rating} out of 5`}
-                    >
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-5 w-5 ${i < testimonials[currentTestimonial].rating
-                              ? "text-yellow-400"
-                              : "text-gray-300"
-                            }`}
-                          fill={
-                            i < testimonials[currentTestimonial].rating
-                              ? "currentColor"
-                              : "none"
-                          }
-                        />
-                      ))}
-                    </div>
-                    <blockquote className="text-lg text-gray-700 mb-6">
-                      “{testimonials[currentTestimonial].content}”
-                    </blockquote>
-                    <div className="flex items-center">
-                      <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
-                        {testimonials[currentTestimonial].name.charAt(0)}
-                      </div>
-                      <div className="ml-4">
-                        <p className="font-medium text-gray-900">
-                          {testimonials[currentTestimonial].name}
-                        </p>
-                        <p className="text-gray-600">
-                          {testimonials[currentTestimonial].role}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+              <blockquote className="text-lg text-gray-700 mb-6">
+                “{testimonials[currentTestimonial].content}”
+              </blockquote>
+              <div className="flex items-center">
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                  {testimonials[currentTestimonial].name.charAt(0)}
                 </div>
-
-                {/* Navigation */}
-                <div className="flex justify-between items-center mt-6">
-                  <button
-                    onClick={prevTestimonial}
-                    className="p-2 rounded-full bg-white shadow-md text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    aria-label="Previous testimonial"
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </button>
-                  <div className="flex space-x-2">
-                    {testimonials.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentTestimonial(index)}
-                        className={`h-2 w-2 rounded-full transition-all ${index === currentTestimonial
-                            ? "bg-blue-700 w-6"
-                            : "bg-gray-300"
-                          }`}
-                        aria-label={`Go to testimonial ${index + 1}`}
-                      />
-                    ))}
-                  </div>
-                  <button
-                    onClick={nextTestimonial}
-                    className="p-2 rounded-full bg-white shadow-md text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    aria-label="Next testimonial"
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </button>
+                <div className="ml-4">
+                  <p className="font-medium text-gray-900">
+                    {testimonials[currentTestimonial].name}
+                  </p>
+                  <p className="text-gray-600">
+                    {testimonials[currentTestimonial].role}
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
+
+            {/* Navigation */}
+            <div className="flex justify-between items-center mt-6">
+              <button
+                onClick={prevTestimonial}
+                className="p-2 rounded-full bg-white shadow-md text-blue-700 hover:bg-blue-50 transition-all duration-150"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <div className="flex space-x-2">
+                {testimonials.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentTestimonial(index)}
+                    className={`h-2 w-2 rounded-full transition-all ${
+                      index === currentTestimonial
+                        ? "bg-blue-700 w-6"
+                        : "bg-gray-300"
+                    }`}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={nextTestimonial}
+                className="p-2 rounded-full bg-white shadow-md text-blue-700 hover:bg-blue-50 transition-all duration-150"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </section>
+      </div>
+    </section>
+  
+ 
+
 
       {/* Book Now Section */}
-      <section id="book-now" className="py-22">
-        <div className="max-w-7xl mx-auto px-4   sm:px-6 lg:px-8">
-          <div className="overflow-hidden rounded-3xl shadow-2xl ring-1 ring-black/5 bg-white">
+      <section id="book-now" data-snap className="snap-start snap-always h-screen flex items-center bg-gradient-to-b from-white via-white/20 to-blue-500/50">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.5 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full"
+        >
+          <div className="overflow-hidden rounded-3xl shadow-2xl mt-16 ring-1 ring-black/5 bg-white">
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="relative bg-gradient-to-b from-blue-800 to-blue-600 p-10 lg:p-14 text-white">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.12),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.12),transparent_35%)]" />
@@ -754,12 +940,18 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-20 bg-gradient-to-b from-blue-50/60 to-white/60">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+      <section id="contact" data-snap className="snap-start snap-always h-screen flex items-center bg-gradient-to-b from-white-50 to-blue-100">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.5 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full"
+        >
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-800 to-cyan-300 bg-clip-text text-transparent sm:text-4xl">Get In Touch</h2>
             <p className="mt-3 text-xl text-gray-600">We'd love to hear from you</p>
@@ -781,10 +973,10 @@ export default function HomePage() {
               <p className="text-gray-600 leading-relaxed">info@alfadental.com<br />appointments@alfadental.com</p>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
 
-    </div>
+    </main>
   );
 }

@@ -46,7 +46,7 @@ export default function ContactPage() {
   };
 
   return (
-    <section className="w-full max-w-6xl mx-auto px-6 ">
+    <section className="w-full  mx-auto px-6 bg-gradient-to-b from white-50 to-blue-100">
       <h1 className="text-4xl font-bold text-center text-blue-700 mb-12">Contact Us</h1>
 
       {/* Branches */}
