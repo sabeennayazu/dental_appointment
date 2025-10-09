@@ -126,6 +126,7 @@ export default function HomePage() {
     message: "",
   });
   const [doctors, setDoctors] = useState<Array<{ id: number; name: string; service: string }>>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState("");
@@ -146,6 +147,16 @@ export default function HomePage() {
       mounted = false;
     };
   }, []);
+
+  // detect mobile to disable animations / change behaviors
+  useEffect(() => {
+    const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const animProps = (p: any) => (isMobile ? {} : p);
 
   const handleDoctorChangeHome = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -332,7 +343,7 @@ export default function HomePage() {
   }, [activeSection, snapTo]);
 
   return (
-    <main ref={containerRef} className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth bg-gradient-to-b from-white via-blue-50 to-white text-gray-900">
+    <main ref={containerRef} className="md:h-screen md:overflow-y-scroll md:snap-y md:snap-mandatory scroll-smooth bg-gradient-to-b from-white via-blue-50 to-white text-gray-900">
       {/* Decorative background blobs */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-200 blur-3xl opacity-40" />
@@ -340,15 +351,12 @@ export default function HomePage() {
       </div>
 
       {/* Hero Section */}
-      <section id="hero" data-snap className="snap-start snap-always h-screen flex items-center">
+  <section id="hero" data-snap className="md:snap-start md:snap-always md:h-screen flex items-center">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.5 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          {...animProps({ initial: { opacity: 0, y: 24 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: false, amount: 0.5 }, transition: { duration: 0.5, ease: "easeOut" } })}
           className="relative max-w-7xl mx-auto w-full p-8 md:p-16 sm:px-6 lg:px-8"
         >
-          <div className="flex flex-col md:flex-row items-center gap-10 bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl p-12 md:p-16shadow-xl ring-1 ring-white/60">
+          <div className="flex flex-col md:flex-row items-center gap-10 bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl p-12 md:p-16 shadow-xl ring-1 ring-white/60">
 
             {/* Left Side (Text + Buttons + Highlights) */}
             <div className="w-fit">
@@ -415,70 +423,101 @@ export default function HomePage() {
           </div>
         </motion.div>
       </section>
+{/* Services Section */}
+<section
+  id="services"
+  data-snap
+  className="md:snap-start md:snap-always md:h-screen flex items-center bg-gradient-to-b from-white via-white/20 to-cyan-500/50"
+>
+  <motion.div
+    {...animProps({ initial: { opacity: 0, y: 24 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: false, amount: 0.3 }, transition: { duration: 0.6, ease: 'easeOut' } })}
+    className="w-full mx-auto px-4 sm:px-6 lg:px-8"
+  >
+    {/* Main container for the 2-column layout */}
+    <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
 
-      {/* Services Section */}
-      <section id="services" data-snap className="snap-start snap-always h-screen flex items-center bg-gradient-to-b from-white via-white/20 to-cyan-500/50">
+      {/* LEFT COLUMN: IMAGE (with hover effect) */}
+      <div className="w-full lg:w-8/12">
+        <motion.img
+          {...animProps({ initial: { opacity: 0, scale: 0.9 }, whileInView: { opacity: 1, scale: 1 }, whileHover: { scale: 1.05, rotate: 2 }, transition: { duration: 0.6, ease: 'easeOut', rotate: { type: 'spring', stiffness: 100, damping: 10 } }, viewport: { once: false, amount: 0.5 } })}
+          src="/images/service.jpg"
+          alt="Friendly dentist"
+          className="relative top-8 rounded-3xl object-cover w-full h-auto shadow-2xl cursor-pointer"
+        />
+      </div>
+
+      {/* RIGHT COLUMN: CONTENT (slides in from right) */}
+      <motion.div
+        {...animProps({ initial: { opacity: 0, x: 120 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: false, amount: 0.3 }, transition: { duration: 0.8, ease: 'easeOut' } })}
+        className="w-full lg:w-7/12"
+      >
+        <div className="text-center lg:text-left mb-8 pb-4">
+          <h2 className="text-3xl text-center font-extrabold bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent sm:text-4xl">
+            Our Dental Services
+          </h2>
+          <p className="mt-3 text-xl text-center text-gray-500">
+            Comprehensive dental care for the whole family
+          </p>
+        </div>
+
+        {/* Service Cards Grid */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.5 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 w-full"
+          {...animProps({ initial: { opacity: 0, x: 150 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: false, amount: 0.3 }, transition: { duration: 0.8, delay: 0.2, ease: 'easeOut' } })}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-6"
         >
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent sm:text-4xl">Our Dental Services</h2>
-            <p className="mt-3 text-xl text-gray-500">Comprehensive dental care for the whole family</p>
-          </div>
-
-          {/* View All Button Aligned Right */}
-          <div className="flex justify-end mb-6">
-            <Link href="/services">
-              <button className="flex items-center cursor-pointer text-blue-600 hover:text-blue-800 transition-colors font-medium">
-                <span className="mr-1">View all</span>
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-            {services.map((service) => (
-              <div
-                key={service.id}
-                className="group relative rounded-2xl bg-white/80 backdrop-blur p-8 shadow-md ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-              >
-                <div className="inline-flex items-center justify-center rounded-full p-4 mb-5 bg-gradient-to-br from-blue-100 to-blue-50 shadow-inner">
-                  {service.icon}
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{service.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{service.description}</p>
-
-                <div className="pointer-events-none absolute inset-x-0 -bottom-6 mx-auto h-12 w-[80%] rounded-full bg-black/5 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          {services.map((service) => (
+            <motion.div
+              key={service.id}
+              {...animProps({ initial: { opacity: 0, x: 100 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: false, amount: 0.3 }, transition: { duration: 0.6, ease: 'easeOut' } })}
+              className={`group relative rounded-2xl bg-white/70 backdrop-blur-xl p-6 text-left shadow-lg border border-white/30  ${isMobile ? '' : 'hover:-translate-y-2 hover:shadow-2xl transition-normal duration-300'}`}
+            >
+              <div className="inline-flex items-center justify-center rounded-xl p-3 mb-4 bg-gradient-to-br from-blue-100 to-cyan-50 shadow-inner">
+                {service.icon}
               </div>
-            ))}
-          </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {service.title}
+              </h3>
+              <p className="text-gray-600 leading-relaxed">
+                {service.description}
+              </p>
+            </motion.div>
+          ))}
         </motion.div>
-      </section>
+
+        {/* View All Button Aligned Right */}
+        <motion.div
+          {...animProps({ initial: { opacity: 0, x: 100 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: false, amount: 0.3 }, transition: { duration: 0.8, delay: 0.3, ease: 'easeOut' } })}
+          className="flex justify-center pt-4 lg:justify-end mb-6"
+        >
+          <Link href="/services">
+            <button className="flex items-center cursor-pointer text-blue-600 hover:text-blue-800 transition-colors font-medium">
+              <span className="mr-1">View all</span>
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </Link>
+        </motion.div>
+      </motion.div>
+    </div>
+  </motion.div>
+</section>
+
+
 
       {/* Why Choose Us Section */}
       <section
   id="why-choose-us"
   data-snap
-  className="snap-start snap-always h-screen flex items-center bg-gradient-to-b from-white via-white-50 to-blue-500/40 overflow-hidden"
+  className="md:snap-start md:snap-always md:h-screen flex items-center bg-gradient-to-b from-white via-white-50 to-blue-500/40 overflow-hidden"
 >
-  <motion.div
-    initial={{ opacity: 0, y: 24 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: false, amount: 0.4 }}
-    transition={{ duration: 0.5, ease: "easeOut" }}
-    className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-12 px-6 lg:px-10 w-full"
-  >
+      <motion.div
+        {...animProps({ initial: { opacity: 0, y: 24 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: false, amount: 0.4 }, transition: { duration: 0.5, ease: "easeOut" } })}
+        className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-12 px-6 lg:px-10 w-full"
+      >
     {/* Left: Text + Benefits */}
     <div className="space-y-10">
       {/* Header block */}
       <motion.div
-        initial={{ opacity: 0, x: -150, rotate: -5 }}
-        whileInView={{ opacity: 1, x: 0, rotate: 0 }}
-        viewport={{ once: false, amount: 0.5 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
+        {...animProps({ initial: { opacity: 0, x: -150, rotate: -5 }, whileInView: { opacity: 1, x: 0, rotate: 0 }, viewport: { once: false, amount: 0.5 }, transition: { duration: 0.8, ease: "easeOut" } })}
         className="text-left"
       >
         <h2 className="text-4xl font-extrabold bg-gradient-to-r from-blue-700 to-cyan-400 bg-clip-text text-transparent">
@@ -507,20 +546,7 @@ export default function HomePage() {
               return (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, ...dir }}
-                  whileInView={{ opacity: 1, x: 0, y: 0, rotate: 0 }}
-                  viewport={{ once: false, amount: 0.4 }}
-                  transition={{
-                    duration: 0.8,
-                    delay: index * 0.15,
-                    ease: "easeOut",
-                  }}
-                  whileHover={{
-                    scale: 1.05,
-                    y: -10,
-                    boxShadow:
-                      "0 20px 35px rgba(0, 0, 0, 0.08), 0 10px 15px rgba(0, 0, 0, 0.05)",
-                  }}
+                  {...animProps({ initial: { opacity: 0, ...dir }, whileInView: { opacity: 1, x: 0, y: 0, rotate: 0 }, viewport: { once: false, amount: 0.4 }, transition: { duration: 0.8, delay: index * 0.15, ease: "easeOut" }, whileHover: { scale: 1.05, y: -10, boxShadow: "0 20px 35px rgba(0, 0, 0, 0.08), 0 10px 15px rgba(0, 0, 0, 0.05)" } })}
                   className="flex items-start gap-4 p-5 rounded-2xl bg-white/90 border border-blue-100 shadow-md"
                 >
                   <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-blue-200 to-blue-100 text-blue-700 shadow-inner">
@@ -541,70 +567,65 @@ export default function HomePage() {
         ))}
       </div>
     </div>
+  <div className="relative md:top-16 top-0 ">
 
     {/* Right: Image */}
     <motion.div
-      initial={{ opacity: 0, x: 150, rotateY: 15 }}
-      whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
-      viewport={{ once: false, amount: 0.5 }}
-      transition={{ duration: 1, ease: "easeOut" }}
+      {...animProps({ initial: { opacity: 0, x: 150, rotateY: 15 }, whileInView: { opacity: 1, x: 0, rotateY: 0 }, viewport: { once: false, amount: 0.5 }, transition: { duration: 1,  ease: "easeOut" } })}
       className="relative hidden lg:flex justify-center items-center h-full"
-    >
+      >
       <motion.div
         whileHover={{
           scale: 1.05,
           rotateY: 5,
           y: -8,
           boxShadow:
-            "0 25px 40px rgba(0, 0, 0, 0.15), 0 10px 20px rgba(0, 0, 0, 0.08)",
+          "0 25px 40px rgba(0, 0, 0, 0.15), 0 10px 20px rgba(0, 0, 0, 0.08)",
           transition: { type: "spring", stiffness: 150, damping: 12 },
         }}
         className="relative w-full h-[80%] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-blue-100"
-      >
+        >
         <img
           src="/images/room.jpg"
           alt="Dental clinic room"
           className="w-full h-full object-cover"
-        />
+          />
         <div className="absolute inset-0 bg-gradient-to-l from-white/40 to-transparent rounded-2xl"></div>
       </motion.div>
     </motion.div>
+          </div>
   </motion.div>
 </section>
 
 
 
 
-       <section
-      id="testimonials"
-      data-snap
-      className="snap-start h-screen flex items-center bg-gradient-to-b from-white to-cyan-300/40"
-    >
+      <section
+        id="testimonials"
+        data-snap
+        className="md:snap-start md:h-screen flex items-center bg-gradient-to-b from-white to-cyan-300/40"
+      >
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <div className="relative top-6">
+
         {/* Left: Image pops from left */}
         <motion.div
-          initial={{ opacity: 0, x: -200, y: 50, rotate: -8 }}
-          whileInView={{ opacity: 1, x: 0, y: 0, rotate: 0 }}
-          viewport={{ once: false, amount: 0.4 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          whileHover={{ scale: 1.07, rotate: 2, transition: { duration: 0.2 } }}
+          {...animProps({ initial: { opacity: 0, x: -200, y: 50, rotate: -8 }, whileInView: { opacity: 1, x: 0, y: 0, rotate: 0 }, viewport: { once: false, amount: 0.4 }, transition: { duration: 0.6, ease: "easeOut" }, whileHover: { scale: 1.07, rotate: 2, transition: { duration: 0.2 } } })}
           className="rounded-2xl shadow-xl overflow-hidden"
-        >
+          >
           <img
             src="/images/group.jpg"
             alt="Patient testimonial"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover "
           />
         </motion.div>
+            </div>
 
         {/* Right Side */}
         <div className="flex flex-col space-y-10">
           {/* Heading from top-right */}
           <motion.div
-            initial={{ opacity: 0, y: -100, x: 80 }}
-            whileInView={{ opacity: 1, y: 0, x: 0 }}
-            viewport={{ once: false, amount: 0.4 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            {...animProps({ initial: { opacity: 0, y: -100, x: 80 }, whileInView: { opacity: 1, y: 0, x: 0 }, viewport: { once: false, amount: 0.4 }, transition: { duration: 0.6, ease: "easeOut" } })}
           >
             <h2 className="text-3xl font-extrabold text-center bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent sm:text-4xl">
               What Our Patients Say
@@ -616,11 +637,7 @@ export default function HomePage() {
 
           {/* Carousel from bottom-right */}
           <motion.div
-            initial={{ opacity: 0, y: 120, x: 80 }}
-            whileInView={{ opacity: 1, y: 0, x: 0 }}
-            viewport={{ once: false, amount: 0.4 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-            whileHover={{ y: -8, scale: 1.02, transition: { duration: 0.15 } }}
+            {...animProps({ initial: { opacity: 0, y: 120, x: 80 }, whileInView: { opacity: 1, y: 0, x: 0 }, viewport: { once: false, amount: 0.4 }, transition: { duration: 0.6, delay: 0.1, ease: "easeOut" }, whileHover: { y: -8, scale: 1.02, transition: { duration: 0.15 } } })}
             className="bg-white/80 backdrop-blur rounded-2xl shadow-xl p-8 ring-1 ring-black/5 relative"
           >
             <Quote className="absolute top-8 left-8 text-blue-100 h-16 w-16 -z-0" />
@@ -697,15 +714,12 @@ export default function HomePage() {
 
 
       {/* Book Now Section */}
-      <section id="book-now" data-snap className="snap-start snap-always h-screen flex items-center bg-gradient-to-b from-white via-white/20 to-blue-500/50">
+  <section id="book-now" data-snap className="md:snap-start md:snap-always md:h-screen flex items-center bg-gradient-to-b from-white via-white/20 to-blue-500/50">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.5 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          {...animProps({ initial: { opacity: 0, y: 24 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: false, amount: 0.5 }, transition: { duration: 0.5, ease: "easeOut" } })}
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full"
         >
-          <div className="overflow-hidden rounded-3xl shadow-2xl mt-16 ring-1 ring-black/5 bg-white">
+          <div className="overflow-hidden rounded-3xl shadow-2xl md:mt-16 mt-0 ring-1 ring-black/5 bg-white">
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="relative bg-gradient-to-b from-blue-800 to-blue-600 p-10 lg:p-14 text-white">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.12),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.12),transparent_35%)]" />
@@ -946,10 +960,7 @@ export default function HomePage() {
       {/* Contact Section */}
       <section id="contact" data-snap className="snap-start snap-always h-screen flex items-center bg-gradient-to-b from-white-50 to-blue-100">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.5 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          {...animProps({ initial: { opacity: 0, y: 24 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: false, amount: 0.5 }, transition: { duration: 0.5, ease: "easeOut" } })}
           className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full"
         >
           <div className="text-center mb-12">
