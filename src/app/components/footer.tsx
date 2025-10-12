@@ -84,7 +84,7 @@ export default function Footer() {
             </ul>
             <div className="mt-6">
               <a
-                href="#book-now"
+                href="/book-now"
                 className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-sm font-medium hover:from-blue-700 hover:to-cyan-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 w-full text-center"
               >
                 Book an Appointment

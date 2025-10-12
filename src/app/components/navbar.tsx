@@ -44,7 +44,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-14">
           {/* Logo */}
           <a href="/" className="flex items-center space-x-2 group">
-            <span className="text-3xl text-blue-600">🦷</span>
+          <img src="/images/logo.png" alt="logo" className="w-16 h-16" />
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
               Alfa Dental Home
             </span>
