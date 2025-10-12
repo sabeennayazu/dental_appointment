@@ -5,7 +5,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className=" bg-gradient-to-b from-blue-100 to-white pt-8 pb-8">
+    <footer className=" bg-gradient-to-b from-blue-100 to-white pt-8 pb-8 mt-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* About Section */}
@@ -28,7 +28,7 @@ export default function Footer() {
 
             {/* Social Media Icons */}
             <div className="flex space-x-4 mt-2">
-              <a href="#" className="text-blue-600 hover:text-blue-800 transition-colors">
+              <a href="https://www.facebook.com/alfa.dentalhome" className="text-blue-600 hover:text-blue-800 transition-colors">
                 <span className="sr-only">Facebook</span>
                 <Facebook className="h-8 w-8" />
               </a>

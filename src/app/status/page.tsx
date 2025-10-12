@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import Footer from "../components/footer";
 import {
   Phone,
   Mail,
@@ -679,7 +680,9 @@ useEffect(() => {
             </motion.div>
           </motion.div>
         )}
+      
       </AnimatePresence>
+      <Footer />
     </section>
   );
 }

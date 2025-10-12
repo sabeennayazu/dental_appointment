@@ -10,6 +10,12 @@ type Branch = {
   email: string;
 };
 
+interface FeedbackForm {
+  name: string;
+  phone: string;
+  message: string;
+}
+
 const branches: Branch[] = [
   {
     name: "Alfa Dental - Duwakot",
@@ -32,21 +38,41 @@ const branches: Branch[] = [
 ];
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: "", Number: "", message: "" });
+  const [form, setForm] = useState<FeedbackForm>({ name: "", phone: "", message: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form submitted:", form);
-    setForm({ name: "", Number: "", message: "" });
-    alert("Your message has been sent!");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("http://localhost:8000/api/feedback/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("✅ Message sent successfully!");
+        setForm({ name: "", phone: "", message: "" });
+      } else {
+        alert("❌ Failed to send message. Please try again.");
+      }
+    } catch (error) {
+      alert("⚠️ Something went wrong. Check your internet or backend.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <section className="w-full  mx-auto px-6 bg-gradient-to-b from white-50 to-blue-100">
+    <section className="w-full mx-auto px-6 bg-gradient-to-b from white-50 to-blue-100">
       <h1 className="text-4xl font-bold text-center text-blue-700 mb-12">Contact Us</h1>
 
       {/* Branches */}
@@ -69,7 +95,6 @@ export default function ContactPage() {
               <Mail className="mr-2 h-5 w-5 text-blue-600" />
               <span>{branch.email}</span>
             </div>
-            {/* Social Links */}
             <div className="flex space-x-3 mt-2">
               <a href="#" className="text-blue-600 hover:text-blue-800">
                 <Facebook className="h-5 w-5" />
@@ -87,10 +112,9 @@ export default function ContactPage() {
 
       {/* Map & Contact Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Map Placeholder */}
         <div className="w-full h-104 rounded-xl overflow-hidden shadow-lg">
           <iframe
-src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3533.2572890435627!2d85.43864221141197!3d27.678441726665806!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb05e94a75544b%3A0xfd8670bc865fa705!2sAlfa%20Dental%20Home!5e0!3m2!1sen!2snp!4v1759323946704!5m2!1sen!2snp"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3533.2572890435627!2d85.43864221141197!3d27.678441726665806!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb05e94a75544b%3A0xfd8670bc865fa705!2sAlfa%20Dental%20Home!5e0!3m2!1sen!2snp!4v1759323946704!5m2!1sen!2snp"
             className="w-full h-full border-0"
             allowFullScreen
           ></iframe>
@@ -107,14 +131,16 @@ src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3533.2572890435627!2d
               onChange={handleChange}
               placeholder="Your Name"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              required
             />
             <input
-              type="Number"
-              name="Number"
-              value={form.Number}
+              type="tel"
+              name="phone"
+              value={form.phone}
               onChange={handleChange}
               placeholder="Your Phone Number"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              required
             />
             <textarea
               name="message"
@@ -122,13 +148,17 @@ src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3533.2572890435627!2d
               onChange={handleChange}
               rows={5}
               placeholder="Your Message"
-              className="w-full px-4  border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full px-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              required
             />
             <button
               type="submit"
-              className="w-full py-3 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800 transition-colors"
+              disabled={isSubmitting}
+              className={`w-full py-3 ${
+                isSubmitting ? "bg-gray-400" : "bg-blue-700 hover:bg-blue-800"
+              } text-white font-semibold rounded-lg transition-colors`}
             >
-              Send Message
+              {isSubmitting ? "Sending..." : "Send Message"}
             </button>
           </form>
         </div>
