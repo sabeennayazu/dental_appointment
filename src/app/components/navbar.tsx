@@ -37,15 +37,15 @@ export default function Navbar() {
   return (
     <header
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-        scrolled ? "bg-white  py-2" : "bg-white/95 backdrop-blur-sm py-4"
+        scrolled ? "bg-white shadow-sm py-2" : "bg-white/95 backdrop-blur-sm py-2 md:py-4"
       }`}
     >
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14">
+        <div className="flex justify-between items-center min-h-[3.5rem]">
           {/* Logo */}
           <a href="/" className="flex items-center space-x-2 group">
-          <img src="/images/logo.png" alt="logo" className="w-16 h-16" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+            <img src="/images/logo.png" alt="logo" className="w-12 h-12 md:w-16 md:h-16" />
+            <span className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent truncate">
               Alfa Dental Home
             </span>
           </a>
