@@ -16,9 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from dental.auth_views import AdminLoginView, AdminVerifyView, AdminLogoutView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('dental.urls')),
     path('api-auth/', include('rest_framework.urls')),
+    
+    # Admin panel authentication endpoints
+    path('api/admin/login/', AdminLoginView.as_view(), name='admin_login'),
+    path('api/admin/verify/', AdminVerifyView.as_view(), name='admin_verify'),
+    path('api/admin/logout/', AdminLogoutView.as_view(), name='admin_logout'),
 ]

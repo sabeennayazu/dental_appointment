@@ -5,7 +5,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className=" bg-gradient-to-b from-blue-100 to-white pt-8 pb-8 mt-4">
+<footer className="bg-gradient-to-b from-blue-100 to-white pt-8 pb-8 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* About Section */}
@@ -24,9 +24,6 @@ export default function Footer() {
           {/* Connect Section */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Connect</h3>
-            
-
-            {/* Social Media Icons */}
             <div className="flex space-x-4 mt-2">
               <a href="https://www.facebook.com/alfa.dentalhome" className="text-blue-600 hover:text-blue-800 transition-colors">
                 <span className="sr-only">Facebook</span>
@@ -37,9 +34,9 @@ export default function Footer() {
                 <Instagram className="h-8 w-8" />
               </a>
               <a href="#" className="hover:text-gray-800">
-  <span className="sr-only">TikTok</span>
-  <FaTiktok size={30} />
-</a>
+                <span className="sr-only">TikTok</span>
+                <FaTiktok size={30} />
+              </a>
             </div>
           </div>
 
@@ -103,7 +100,6 @@ export default function Footer() {
             <a href="https://github.com/sabeennayazu" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">
                Sabeen Nayazu
             </a>
-            
           </div>
         </div>
       </div>
