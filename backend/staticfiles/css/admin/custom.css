@@ -1,0 +1,38 @@
+/* Highlight active menu item */
+.sidebar-nav .active a {
+    background: #e8e5ff !important;
+    color: #4f46e5 !important;
+    font-weight: 600;
+}
+
+/* Hover effect on sidebar links */
+.sidebar-nav a:hover {
+    background: #f5f3ff !important;
+}
+
+/* Table header color */
+table th {
+    background: #f9fafb !important;
+    color: #374151 !important;
+    font-weight: 600;
+}
+
+/* Table row hover */
+table tbody tr:hover {
+    background: #f3f4f6 !important;
+}
+
+/* Accent buttons */
+.button, .btn {
+    border-radius: 6px !important;
+}
+
+.button-primary, .btn-primary {
+    background: #4f46e5 !important;
+    color: white !important;
+}
+
+/* Title bar */
+body .breadcrumbs {
+    background: #f5f3ff !important;
+}
