@@ -1,0 +1,13 @@
+{% extends "admin/change_form.html" %}
+
+{% block submit_buttons_bottom %}
+<div class="flex gap-2 mt-4 mb-4 mr-6 justify-end">
+<button type="submit" form="appointment_form" name="_approve" class="bg-primary-600 block border border-transparent cursor-pointer font-medium px-3 py-2 rounded-default text-white w-full lg:w-auto">
+                        Approve
+                    </button>
+
+<button type="submit" form="appointment_form" name="_disapprove" class="bg-red-600 block border border-transparent cursor-pointer font-medium px-3 py-2 rounded-default text-white w-full lg:w-auto">
+                        Reject
+                    </button>
+</div>
+{% endblock %}
