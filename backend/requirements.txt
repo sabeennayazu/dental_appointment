@@ -1,0 +1,12 @@
+asgiref==3.9.2
+diff-match-patch==20241021
+Django==5.2.6
+django-cors-headers==4.9.0
+django-import-export==4.3.10
+django-jazzmin==3.0.1
+django-unfold==0.68.0
+djangorestframework==3.16.1
+isort==7.0.0
+sqlparse==0.5.3
+tablib==3.9.0
+tzdata==2025.2
