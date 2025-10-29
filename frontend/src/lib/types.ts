@@ -30,6 +30,8 @@ export interface AppointmentHistory {
   doctor_name: string | null;
   previous_status: string;
   new_status: string;
+  // visit tracking status: 'unvisited' | 'visited'
+  status?: 'unvisited' | 'visited';
   changed_by: string;
   notes: string;
   timestamp: string;

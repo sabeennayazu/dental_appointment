@@ -682,7 +682,7 @@ useEffect(() => {
         )}
       
       </AnimatePresence>
-      <Footer />
+      
     </section>
   );
 }

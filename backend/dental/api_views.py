@@ -56,6 +56,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def by_phone(self, request):
         import re
+        from datetime import datetime
         try:
             phone = request.query_params.get('phone')
             if not phone:
@@ -98,16 +99,50 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             if not results:
                 return Response({'message': 'No appointments found'}, status=404)
 
-            # Return the list of serialized matches (most recent first already by queryset ordering)
+            # Normalize a timestamp for each result so we can sort appointments and history together
+            def _get_ts(item):
+                # history entries may have 'timestamp'
+                ts = 0
+                try:
+                    if item.get('timestamp'):
+                        try:
+                            return datetime.fromisoformat(item.get('timestamp')).timestamp()
+                        except Exception:
+                            pass
+                    if item.get('appointment_date'):
+                        t = item.get('appointment_time') or '00:00:00'
+                        try:
+                            return datetime.fromisoformat(f"{item.get('appointment_date')}T{t}").timestamp()
+                        except Exception:
+                            pass
+                    if item.get('created_at'):
+                        try:
+                            return datetime.fromisoformat(item.get('created_at')).timestamp()
+                        except Exception:
+                            pass
+                except Exception:
+                    return 0
+                return 0
+
+            results = sorted(results, key=_get_ts, reverse=True)
+
             return Response(results)
         except Exception as exc:
             # Always return JSON on unexpected failures
             return Response({'error': str(exc)}, status=500)
 
 
-class AppointmentHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+class AppointmentHistoryViewSet(viewsets.ModelViewSet):
     queryset = AppointmentHistory.objects.all().order_by('-timestamp')
     serializer_class = AppointmentHistorySerializer
+
+    @action(detail=True, methods=['post'])
+    def mark_visited(self, request, pk=None):
+        """Mark a history entry as visited (patient arrived)."""
+        obj = get_object_or_404(AppointmentHistory, pk=pk)
+        obj.status = 'visited'
+        obj.save()
+        return Response(self.get_serializer(obj).data)
 
 
 class DoctorViewSet(viewsets.ModelViewSet):

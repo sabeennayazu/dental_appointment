@@ -1,11 +1,18 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { Facebook, Instagram, MapPin, Phone, Mail } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
 
 export default function Footer() {
+  const pathname = usePathname();
+  // Hide footer on admin pages
+  if (pathname?.startsWith("/admin")) return null;
+
   const currentYear = new Date().getFullYear();
 
   return (
-<footer className="bg-gradient-to-b from-blue-100 to-white pt-8 pb-8 mt-auto">
+    <footer className="bg-gradient-to-b from-blue-100 to-white pt-8 pb-8 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* About Section */}

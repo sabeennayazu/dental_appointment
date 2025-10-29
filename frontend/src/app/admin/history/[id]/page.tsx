@@ -281,6 +281,32 @@ export default function HistoryDetailPage() {
                     {format(new Date(entry.timestamp), "MMM dd, yyyy HH:mm:ss")}
                   </p>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Visit Status
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded-full ${entry.status === 'visited' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {entry.status || 'unvisited'}
+                    </span>
+                    {entry.status !== 'visited' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await apiClient.post(`/api/history/${entry.id}/mark_visited/`);
+                            // refresh
+                            await fetchEntry();
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        className="px-3 py-1 bg-green-600 text-white rounded-md text-sm"
+                      >
+                        Mark visited
+                      </button>
+                    )}
+                  </div>
+                </div>
                 {entry.appointment && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

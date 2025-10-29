@@ -120,6 +120,9 @@ export default function HistoryPage() {
                     Timestamp
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Visit Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -181,16 +184,39 @@ export default function HistoryPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {format(new Date(entry.timestamp), "MMM dd, yyyy HH:mm")}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span className={`px-2 py-1 rounded-full ${entry.status === 'visited' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {entry.status || 'unvisited'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/admin/history/${entry.id}`);
-                          }}
-                          className="text-cyan-600 hover:text-cyan-900 font-medium"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/admin/history/${entry.id}`);
+                            }}
+                            className="text-cyan-600 hover:text-cyan-900 font-medium"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {entry.status !== 'visited' && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await apiClient.post(`/api/history/${entry.id}/mark_visited/`);
+                                  setHistory((prev) => prev.map((h) => (h.id === entry.id ? { ...h, status: 'visited' } : h)));
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }}
+                              className="px-2 py-1 text-sm bg-green-50 text-green-700 rounded-md"
+                            >
+                              Mark visited
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
 import { Appointment, SERVICE_CHOICES, STATUS_CHOICES } from "@/lib/types";
-import { Search, Filter, Download, Upload, Plus, Eye } from "lucide-react";
+import { Search, Filter, Download, Upload, Eye } from "lucide-react";
 import { format } from "date-fns";
 
 export default function AppointmentsPage() {
@@ -13,7 +13,7 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
   // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -31,46 +31,50 @@ export default function AppointmentsPage() {
     fetchAppointments();
   }, [page, search, statusFilter, serviceFilter, dateFrom, dateTo]);
 
-  const fetchAppointments = async () => {
-    setLoading(true);
-    setError("");
-    
-    try {
-      const params: any = {
-        page,
-        page_size: pageSize,
-      };
+ const fetchAppointments = async () => {
+  setLoading(true);
+  setError("");
 
-      if (search) params.search = search;
-      if (statusFilter) params.status = statusFilter;
-      if (serviceFilter) params.service = serviceFilter;
-      if (dateFrom) params.date_from = dateFrom;
-      if (dateTo) params.date_to = dateTo;
+  try {
+    const params: Record<string, any> = {
+      page,
+      page_size: pageSize,
+      ...(search && { search }),
+      ...(statusFilter && { status: statusFilter }),
+      ...(serviceFilter && { service: serviceFilter }),
+      ...(dateFrom && { date_from: dateFrom }),
+      ...(dateTo && { date_to: dateTo }),
+    };
 
-      const response = await apiClient.get<any>("/api/appointments/", params);
-      
-      // Handle both paginated and non-paginated responses
-      if (response.results) {
-        setAppointments(response.results);
-        setTotalCount(response.count || 0);
-      } else if (Array.isArray(response)) {
-        setAppointments(response);
-        setTotalCount(response.length);
-      } else {
-        setAppointments([]);
-        setTotalCount(0);
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch appointments");
+    // ✅ tell TypeScript what we expect
+    const response = await apiClient.get<{
+      results?: Appointment[];
+      count?: number;
+    }>("/api/appointments/", { params });
+
+    const data = response as any; // safe fallback
+
+    if (data.results) {
+      setAppointments(data.results);
+      setTotalCount(data.count || 0);
+    } else if (Array.isArray(data)) {
+      setAppointments(data);
+      setTotalCount(data.length);
+    } else {
       setAppointments([]);
-    } finally {
-      setLoading(false);
+      setTotalCount(0);
     }
-  };
+  } catch (err: any) {
+    setError(err.message || "Failed to fetch appointments");
+    setAppointments([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleExport = async () => {
     try {
-      // For now, export as JSON. In production, this would be CSV from backend
       const dataStr = JSON.stringify(appointments, null, 2);
       const dataBlob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(dataBlob);
@@ -85,7 +89,6 @@ export default function AppointmentsPage() {
   };
 
   const handleImport = () => {
-    // TODO: Implement import functionality
     alert("Import functionality coming soon");
   };
 
@@ -109,7 +112,7 @@ export default function AppointmentsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
             <p className="text-gray-600 mt-1">Manage patient appointments</p>
           </div>
-          
+
           <div className="flex gap-2">
             <button
               onClick={handleImport}
@@ -141,7 +144,7 @@ export default function AppointmentsPage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
               />
             </div>
-            
+
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
@@ -216,7 +219,7 @@ export default function AppointmentsPage() {
           )}
         </div>
 
-        {/* Error message */}
+        {/* Error */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {error}
@@ -279,7 +282,9 @@ export default function AppointmentsPage() {
                         <div className="text-sm font-medium text-gray-900">
                           {appointment.name}
                         </div>
-                        <div className="text-sm text-gray-500">{appointment.email}</div>
+                        <div className="text-sm text-gray-500">
+                          {appointment.email}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {appointment.phone}
@@ -324,7 +329,7 @@ export default function AppointmentsPage() {
                 Showing {(page - 1) * pageSize + 1} to{" "}
                 {Math.min(page * pageSize, totalCount)} of {totalCount} results
               </div>
-              
+
               <div className="flex gap-2">
                 <button
                   onClick={() => setPage(page - 1)}

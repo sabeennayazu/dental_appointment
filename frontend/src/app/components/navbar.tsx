@@ -34,6 +34,9 @@ export default function Navbar() {
 
   if (!mounted) return null; // Avoid SSR mismatch
 
+  // Hide navbar when inside admin panel routes
+  if (pathname?.startsWith("/admin")) return null;
+
   return (
     <header
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${

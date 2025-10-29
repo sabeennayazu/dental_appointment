@@ -64,6 +64,13 @@ class AppointmentHistory(models.Model):
 	notes = models.TextField(blank=True)
 	timestamp = models.DateTimeField(auto_now_add=True)
 
+	# admin usage: whether the patient actually visited after the appointment (unvisited/visited)
+	STATUS_CHOICES = [
+		('unvisited', 'Unvisited'),
+		('visited', 'Visited'),
+	]
+	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unvisited')
+
 	def __str__(self):
 		return f"History for {self.name} ({self.phone}) at {self.timestamp}"
 

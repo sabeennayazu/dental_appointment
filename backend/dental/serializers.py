@@ -18,8 +18,10 @@ class AppointmentHistorySerializer(serializers.ModelSerializer):
         model = AppointmentHistory
         fields = [
             'id', 'appointment', 'name', 'email', 'phone', 'service', 'appointment_date', 'appointment_time', 'message',
-            'doctor_id', 'doctor_name', 'previous_status', 'new_status', 'changed_by', 'notes', 'timestamp'
+            'doctor_id', 'doctor_name', 'previous_status', 'new_status', 'changed_by', 'notes', 'timestamp', 'status'
         ]
+        # include visit tracking status
+        read_only_fields = ['timestamp']
 
 
 class DoctorSerializer(serializers.ModelSerializer):
