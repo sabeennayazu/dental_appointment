@@ -1,16 +1,19 @@
 /** @jsxImportSource react */
-import { Tooth, Heart, UserCheck, HeartPulse, Activity, Smile, Users, ThumbsUp } from 'lucide-react';
+import { Heart, UserCheck, HeartPulse, Activity, Smile, Users, ThumbsUp } from 'lucide-react';
 import { Service, Benefit, Testimonial } from './types';
 import { createElement } from 'react';
 
-const createIcon = (Icon: typeof Tooth) => createElement(Icon, { className: "h-6 w-6" });
+// Accept any icon component from lucide-react — keep typing permissive to avoid
+// TypeScript errors when icons differ between versions.
+const createIcon = (Icon: any) => createElement(Icon, { className: "h-6 w-6" });
 
 export const services: Service[] = [
   {
     id: 1,
     title: "General Dentistry",
     description: "Regular checkups, cleanings, and preventive care for healthy teeth and gums.",
-    icon: createIcon(Tooth)
+    // 'Tooth' is not available in some lucide-react sets; use Activity as a safe fallback
+    icon: createIcon(Activity)
   },
   {
     id: 2,

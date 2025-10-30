@@ -63,6 +63,7 @@ class ApiClient {
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: this.getHeaders(),
+      cache: 'no-store',
     });
 
     return this.handleResponse<T>(response);
@@ -129,6 +130,7 @@ class ApiClient {
       method: 'POST',
       headers,
       body: formData,
+      cache: 'no-store',
     });
 
     return this.handleResponse<T>(response);

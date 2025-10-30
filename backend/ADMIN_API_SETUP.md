@@ -519,4 +519,4 @@ After implementing these changes:
 6. ✅ History tracking on status changes
 7. ✅ CSV import/export (optional)
 
-The Next.js admin panel will now have full API support!
+The Next.js admin panel will now have full API support!*-

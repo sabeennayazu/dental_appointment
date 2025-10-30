@@ -57,76 +57,61 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def by_phone(self, request):
         import re
         from datetime import datetime
-        try:
-            phone = request.query_params.get('phone')
-            if not phone:
-                return Response({'detail': 'phone query param required'}, status=400)
+        from django.db.models import Q
 
+        try:
+            phone = request.query_params.get('phone', '').strip()
+            if not phone:
+                return Response([], status=200)
+
+            # Normalize query to digits only
             query_digits = re.sub(r"\D", "", str(phone))
+            if not query_digits:
+                return Response([], status=200)
+
             results = []
 
-            # Search active appointments (exact normalized match)
-            for a in Appointment.objects.all().order_by('-created_at'):
+            # Search active appointments using partial match
+            appointments = Appointment.objects.all().order_by('-created_at')
+            for appointment in appointments:
                 try:
-                    raw = getattr(a, 'phone', None)
-                    if not raw:
+                    if not appointment.phone:
                         continue
-                    a_digits = re.sub(r"\D", "", str(raw))
-                    if a_digits == query_digits:
-                        serialized = AppointmentSerializer(a).data
-                        serialized['_source'] = 'active'
-                        results.append(serialized)
+                    normalized = re.sub(r"\D", "", str(appointment.phone))
+                    if normalized.startswith(query_digits):
+                        data = AppointmentSerializer(appointment).data
+                        data['_source'] = 'active'
+                        data['_sort_timestamp'] = appointment.created_at.isoformat()
+                        results.append(data)
                 except Exception:
-                    # skip malformed appointment entries
                     continue
 
-            # Search appointment history snapshots (some rows may lack phone)
-            for h in AppointmentHistory.objects.all().order_by('-timestamp'):
+            # Search appointment history using partial match
+            history = AppointmentHistory.objects.all().order_by('-timestamp')
+            for entry in history:
                 try:
-                    raw = getattr(h, 'phone', None)
-                    if not raw:
-                        # gracefully skip history entries without phone
+                    if not entry.phone:
                         continue
-                    h_digits = re.sub(r"\D", "", str(raw))
-                    if h_digits == query_digits:
-                        serialized = AppointmentHistorySerializer(h).data
-                        serialized['_source'] = 'history'
-                        results.append(serialized)
+                    normalized = re.sub(r"\D", "", str(entry.phone))
+                    if normalized.startswith(query_digits):
+                        data = AppointmentHistorySerializer(entry).data
+                        data['_source'] = 'history'
+                        data['_sort_timestamp'] = entry.timestamp.isoformat()
+                        results.append(data)
                 except Exception:
-                    # skip malformed history entries
                     continue
 
-            if not results:
-                return Response({'message': 'No appointments found'}, status=404)
+            # Sort all results by timestamp (most recent first)
+            results.sort(key=lambda x: x.get('_sort_timestamp', ''), reverse=True)
 
-            # Normalize a timestamp for each result so we can sort appointments and history together
-            def _get_ts(item):
-                # history entries may have 'timestamp'
-                ts = 0
-                try:
-                    if item.get('timestamp'):
-                        try:
-                            return datetime.fromisoformat(item.get('timestamp')).timestamp()
-                        except Exception:
-                            pass
-                    if item.get('appointment_date'):
-                        t = item.get('appointment_time') or '00:00:00'
-                        try:
-                            return datetime.fromisoformat(f"{item.get('appointment_date')}T{t}").timestamp()
-                        except Exception:
-                            pass
-                    if item.get('created_at'):
-                        try:
-                            return datetime.fromisoformat(item.get('created_at')).timestamp()
-                        except Exception:
-                            pass
-                except Exception:
-                    return 0
-                return 0
+            # Remove temporary sort field
+            for result in results:
+                result.pop('_sort_timestamp', None)
 
-            results = sorted(results, key=_get_ts, reverse=True)
+            return Response(results, status=200)
 
-            return Response(results)
+        except Exception as exc:
+            return Response({'error': str(exc)}, status=200)
         except Exception as exc:
             # Always return JSON on unexpected failures
             return Response({'error': str(exc)}, status=500)

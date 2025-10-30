@@ -36,7 +36,10 @@ export default function HistoryPage() {
 
       const response = await apiClient.get<any>("/api/history/", params);
 
-      if (response.results) {
+      if (!response) {
+        setHistory([]);
+        setTotalCount(0);
+      } else if (response.results) {
         setHistory(response.results);
         setTotalCount(response.count || 0);
       } else if (Array.isArray(response)) {

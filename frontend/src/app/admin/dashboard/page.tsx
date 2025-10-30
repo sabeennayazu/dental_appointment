@@ -244,7 +244,7 @@ export default function DashboardPage() {
                   setSearchError("");
                   try {
                     const res = await apiClient.get<any>(`/api/appointments/by_phone/`, { phone: searchPhone });
-                    setSearchResults(Array.isArray(res) ? res : res.results || res);
+                    setSearchResults(Array.isArray(res) ? res : (res.results || []));
                   } catch (err: any) {
                     setSearchError(err.message || 'No results');
                     setSearchResults([]);
@@ -252,9 +252,10 @@ export default function DashboardPage() {
                     setSearchLoading(false);
                   }
                 }}
-                className="px-4 py-2 bg-cyan-600 text-white rounded-lg"
+                disabled={!searchPhone.trim() || searchLoading}
+                className="px-4 py-2 bg-cyan-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cyan-700 transition"
               >
-                Search
+                {searchLoading ? 'Searching...' : 'Search'}
               </button>
             </div>
 
