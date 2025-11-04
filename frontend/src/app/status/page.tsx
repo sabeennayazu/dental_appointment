@@ -90,64 +90,75 @@ export default function StatusPage() {
     setError("");
     setAppointments([]);
     try {
-      const phoneEncoded = encodeURIComponent(phoneNumber);
-      const [byPhoneRes, historyRes] = await Promise.allSettled([
-        fetch(`http://localhost:8000/api/appointments/by_phone/?phone=${phoneEncoded}`),
-        fetch(`http://localhost:8000/api/history/`),
+      // Fetch from both appointments and history endpoints
+      const [appointmentsRes, historyRes] = await Promise.all([
+        fetch(`http://localhost:8000/api/appointments/`),
+        fetch(`http://localhost:8000/api/history/`)
       ]);
 
-      let results: any[] = [];
-
-      if (byPhoneRes.status === "fulfilled") {
-        const res = byPhoneRes.value as Response;
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            results = results.concat(data.map((r: any) => ({ ...r })));
-          }
-        }
+      if (!appointmentsRes.ok || !historyRes.ok) {
+        throw new Error("Server error");
       }
 
-      if (historyRes.status === "fulfilled") {
-        const res = historyRes.value as Response;
-        if (res.ok) {
-          const hdata = await res.json();
-          if (Array.isArray(hdata)) {
-            const digits = (s: string | undefined | null) => (s ? s.replace(/\D/g, "") : "");
-            const q = digits(phoneNumber);
-            const filtered = hdata
-              .filter((h: any) => digits(h.phone) === q)
-              .map((h: any) => ({ ...h, _source: "history" }));
-            const existingKeys = new Set(results.map((r) => `${r._source || "active"}:${r.id}`));
-            filtered.forEach((f: any) => {
-              const key = `history:${f.id}`;
-              if (!existingKeys.has(key)) {
-                results.push(f);
-                existingKeys.add(key);
-              }
-            });
-          }
-        }
+      const appointmentsData = await appointmentsRes.json();
+      const historyData = await historyRes.json();
+
+      // Extract results from paginated responses
+      let activeAppointments: any[] = [];
+      let historyRecords: any[] = [];
+
+      if (Array.isArray(appointmentsData)) {
+        activeAppointments = appointmentsData;
+      } else if (appointmentsData.results && Array.isArray(appointmentsData.results)) {
+        activeAppointments = appointmentsData.results;
       }
 
-      if (!results || results.length === 0) {
-        setError("No appointments found");
+      if (Array.isArray(historyData)) {
+        historyRecords = historyData;
+      } else if (historyData.results && Array.isArray(historyData.results)) {
+        historyRecords = historyData.results;
+      }
+
+      // ✅ EXACT MATCH ONLY - filter by exact phone number
+      const normalizePhone = (phone: string) => {
+        // Remove all non-digit characters for comparison
+        return phone.replace(/\D/g, '');
+      };
+
+      const searchPhone = normalizePhone(phoneNumber);
+
+      // Filter active appointments with exact match
+      const matchedActive = activeAppointments.filter((appt: any) => {
+        if (!appt.phone) return false;
+        return normalizePhone(appt.phone) === searchPhone;
+      }).map((appt: any) => ({
+        ...appt,
+        _source: 'active',
+        doctor_name: appt.doctor && doctorsMap[String(appt.doctor)]
+          ? doctorsMap[String(appt.doctor)]
+          : appt.doctor_name || ""
+      }));
+
+      // Filter history records with exact match
+      const matchedHistory = historyRecords.filter((hist: any) => {
+        if (!hist.phone) return false;
+        return normalizePhone(hist.phone) === searchPhone;
+      }).map((hist: any) => ({
+        ...hist,
+        _source: 'history'
+      }));
+
+      // Combine results
+      let results = [...matchedActive, ...matchedHistory];
+
+      if (results.length === 0) {
+        setError("No appointments found for this phone number");
         setAppointments([]);
         setLoading(false);
         return;
       }
 
-      results = results.map((item: any) => {
-        const copy = { ...item };
-        if (copy._source === "active" && copy.doctor) {
-          copy.doctor_name =
-            copy.doctor && doctorsMap[String(copy.doctor)]
-              ? doctorsMap[String(copy.doctor)]
-              : copy.doctor_name || "";
-        }
-        return copy;
-      });
-
+      // Sort by date (most recent first)
       const parseApptDate = (it: any) => {
         if (it.appointment_date) {
           const t = it.appointment_time || "00:00:00";

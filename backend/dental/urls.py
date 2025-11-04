@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework import routers
-from .api_views import AppointmentViewSet, AppointmentHistoryViewSet, DoctorViewSet, FeedbackCreateView
+from .api_views import AppointmentViewSet, AppointmentHistoryViewSet, DoctorViewSet, FeedbackListCreateView
 
 router = routers.DefaultRouter()
 router.register(r'appointments', AppointmentViewSet, basename='appointments')
@@ -9,5 +9,5 @@ router.register(r'doctors', DoctorViewSet, basename='doctors')
 
 urlpatterns = [
     path('api/', include(router.urls)),
-    path('api/feedback/', FeedbackCreateView.as_view(), name='feedback')
+    path('api/feedback/', FeedbackListCreateView.as_view(), name='feedback')
 ]

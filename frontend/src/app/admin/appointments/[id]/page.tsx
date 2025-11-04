@@ -8,6 +8,12 @@ import { Appointment, AppointmentHistory, Doctor } from "@/lib/types";
 import { ArrowLeft, Check, X, Save, History as HistoryIcon } from "lucide-react";
 import { format } from "date-fns";
 
+const safeFormatDate = (dateString?: string | null) => {
+  if (!dateString) return "N/A";
+  const parsed = new Date(dateString);
+  return isNaN(parsed.getTime()) ? "N/A" : format(parsed, "MMM dd, yyyy HH:mm");
+};
+
 export default function AppointmentDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -96,11 +102,11 @@ export default function AppointmentDetailPage() {
       setAppointment(updated);
       alert(`Appointment ${newStatus.toLowerCase()} successfully!`);
       
-      // Refresh history
+      // Refresh history to show the new entry
       await fetchHistory();
       
-      // Note: In Django admin, approved/rejected appointments are deleted
-      // Redirect back to list after a short delay
+      // ✅ Django deletes approved/rejected appointments - redirect to list
+      // The appointment is now in history, not in active appointments
       setTimeout(() => {
         router.push("/admin/appointments");
       }, 1500);
@@ -230,12 +236,13 @@ export default function AppointmentDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email
                   </label>
-                  <input
-                    type="email"
-                    value={appointment.email}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                  />
+                 <input
+  type="email"
+  value={appointment.email ?? ""}
+  readOnly
+  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+/>
+
                 </div>
 
                 <div>
@@ -352,7 +359,7 @@ export default function AppointmentDetailPage() {
                             {entry.previous_status} → {entry.new_status}
                           </span>
                           <span className="text-xs text-gray-500">
-                            {format(new Date(entry.timestamp), "MMM dd, yyyy HH:mm")}
+                            {safeFormatDate(entry.timestamp)}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mt-1">
@@ -407,16 +414,17 @@ export default function AppointmentDetailPage() {
                     Created At
                   </label>
                   <p className="text-sm text-gray-900">
-                    {format(new Date(appointment.created_at), "MMM dd, yyyy HH:mm")}
+                    {safeFormatDate(appointment.created_at)}
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Updated At
                   </label>
-                  <p className="text-sm text-gray-900">
-                    {format(new Date(appointment.updated_at), "MMM dd, yyyy HH:mm")}
-                  </p>
+                 <p className="text-sm text-gray-900">
+  {safeFormatDate(appointment.updated_at)}
+</p>
+
                 </div>
                 {appointment.doctor && (
                   <div>

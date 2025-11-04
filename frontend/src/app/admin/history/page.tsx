@@ -1,61 +1,115 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
 import { AppointmentHistory } from "@/lib/types";
 import { Search, Eye } from "lucide-react";
 import { format } from "date-fns";
+import debounce from "lodash/debounce";
 
 export default function HistoryPage() {
   const router = useRouter();
   const [history, setHistory] = useState<AppointmentHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(""); // live phone number search
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(20);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [page, search]);
-
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const params: any = {
-        page,
-        page_size: pageSize,
-      };
+      const params = new URLSearchParams({
+        page: page.toString(),
+        page_size: pageSize.toString(),
+        ...(search && { phone: search }), // search by phone number
+      });
 
-      if (search) params.search = search;
+      const url = `/api/history/?${params}`;
+      const response = await fetch(url);
 
-      const response = await apiClient.get<any>("/api/history/", params);
+      if (!response.ok) {
+        // Try to parse error response safely
+        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            errorMessage = errorData.detail || errorData.message || errorMessage;
+          }
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError);
+        }
+        throw new Error(errorMessage);
+      }
 
-      if (!response) {
+      // Safe JSON parsing
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server did not return valid JSON.");
+      }
+
+      const responseText = await response.text();
+      if (process.env.NODE_ENV === "development") {
+        console.log("Raw response:", responseText.substring(0, 500));
+      }
+
+      let data: any;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        console.error("Response text:", responseText.substring(0, 500));
+        throw new Error("Server returned invalid JSON. Please check the console for details.");
+      }
+
+      if (!data) {
         setHistory([]);
         setTotalCount(0);
-      } else if (response.results) {
-        setHistory(response.results);
-        setTotalCount(response.count || 0);
-      } else if (Array.isArray(response)) {
-        setHistory(response);
-        setTotalCount(response.length);
+      } else if (data.results) {
+        setHistory(data.results);
+        setTotalCount(data.count || 0);
+      } else if (Array.isArray(data)) {
+        setHistory(data);
+        setTotalCount(data.length);
       } else {
         setHistory([]);
         setTotalCount(0);
       }
     } catch (err: any) {
+      console.error("Error fetching history:", err);
       setError(err.message || "Failed to fetch history");
       setHistory([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, search]);
+
+  // Debounced version for search
+  const debouncedFetch = useCallback(
+    debounce(() => {
+      fetchHistory();
+    }, 300),
+    [fetchHistory]
+  );
+
+  useEffect(() => {
+    if (search) {
+      debouncedFetch();
+    } else {
+      fetchHistory();
+    }
+
+    return () => {
+      debouncedFetch.cancel();
+    };
+  }, [page, search, fetchHistory, debouncedFetch]);
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -74,7 +128,7 @@ export default function HistoryPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Appointment History</h1>
-          <p className="text-gray-600 mt-1">View all appointment status changes</p>
+          <p className="text-gray-600 mt-1">{search ? `Searching phone: ${search}` : "View all appointment status changes"}</p>
         </div>
 
         {/* Search */}
@@ -83,9 +137,13 @@ export default function HistoryPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search by name, phone, or changed by..."
+              placeholder="Live search by phone number (digits only)..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, ""); // Strip non-digits
+                setSearch(value);
+                setPage(1); // Reset to first page on search
+              }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
             />
           </div>

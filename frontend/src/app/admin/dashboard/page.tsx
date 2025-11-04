@@ -58,7 +58,8 @@ export default function DashboardPage() {
     try {
       // Fetch appointments
       const appointmentsRes = await apiClient.get<any>("/api/appointments/");
-      const appointments = appointmentsRes.results || appointmentsRes || [];
+      const appointments = await appointmentsRes.results || appointmentsRes || [];
+
       
       // Fetch doctors
       const doctorsRes = await apiClient.get<any>("/api/doctors/");

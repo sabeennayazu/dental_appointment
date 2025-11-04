@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
 import { Doctor, SERVICE_CHOICES } from "@/lib/types";
 import { Search, Plus, Eye, Edit } from "lucide-react";
+import debounce from "lodash/debounce";
 
 export default function DoctorsPage() {
   const router = useRouter();
@@ -15,34 +16,89 @@ export default function DoctorsPage() {
   const [search, setSearch] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
 
-  useEffect(() => {
-    fetchDoctors();
-  }, [serviceFilter]);
-
-  const fetchDoctors = async () => {
+  const fetchDoctors = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const params: any = {};
-      if (serviceFilter) params.service = serviceFilter;
+      const params = new URLSearchParams({
+        ...(serviceFilter && { service: serviceFilter }),
+      });
 
-      const response = await apiClient.get<any>("/api/doctors/", params);
+      const url = `/api/doctors/?${params}`;
+      const response = await fetch(url);
 
-      if (response.results) {
-        setDoctors(response.results);
-      } else if (Array.isArray(response)) {
-        setDoctors(response);
+      if (!response.ok) {
+        // Try to parse error response safely
+        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            errorMessage = errorData.detail || errorData.message || errorMessage;
+          }
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError);
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Safe JSON parsing
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server did not return valid JSON.");
+      }
+
+      const responseText = await response.text();
+      if (process.env.NODE_ENV === "development") {
+        console.log("Raw response:", responseText.substring(0, 500));
+      }
+
+      let data: any;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        console.error("Response text:", responseText.substring(0, 500));
+        throw new Error("Server returned invalid JSON. Please check the console for details.");
+      }
+
+      if (data.results) {
+        setDoctors(data.results);
+      } else if (Array.isArray(data)) {
+        setDoctors(data);
       } else {
         setDoctors([]);
       }
     } catch (err: any) {
+      console.error("Error fetching doctors:", err);
       setError(err.message || "Failed to fetch doctors");
       setDoctors([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [serviceFilter]);
+
+  // Debounced version for search
+  const debouncedFetch = useCallback(
+    debounce(() => {
+      fetchDoctors();
+    }, 300),
+    [fetchDoctors]
+  );
+
+  useEffect(() => {
+    if (search) {
+      // For client-side filtering, we still fetch all but don't debounce the fetch
+      fetchDoctors();
+    } else {
+      fetchDoctors();
+    }
+
+    return () => {
+      debouncedFetch.cancel();
+    };
+  }, [serviceFilter, fetchDoctors, debouncedFetch, search]);
 
   const filteredDoctors = doctors.filter((doctor) =>
     search

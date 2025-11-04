@@ -1,5 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework import generics
+from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
@@ -31,11 +33,15 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         # record history if status changes
         old_status = instance.status
-        self.perform_update(serializer)
-        if 'status' in data and old_status != data.get('status'):
+        new_status = data.get('status')
+        
+        # ✅ Create history entry BEFORE updating/deleting
+        if 'status' in data and old_status != new_status:
             # snapshot doctor info if present
             doc = instance.doctor
-            AppointmentHistory.objects.create(
+            
+            # Create history entry
+            history_entry = AppointmentHistory.objects.create(
                 appointment=instance,
                 name=instance.name,
                 email=instance.email,
@@ -47,10 +53,30 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 doctor_id=getattr(doc, 'id', None),
                 doctor_name=getattr(doc, 'name', None),
                 previous_status=old_status,
-                new_status=data.get('status'),
+                new_status=new_status,
                 changed_by=str(request.user) if request.user.is_authenticated else 'api',
                 notes=data.get('admin_notes', '')
             )
+            
+            # ✅ MATCH Django admin behavior: delete appointment if APPROVED or REJECTED
+            if new_status in ('APPROVED', 'REJECTED'):
+                # Prepare response data BEFORE deleting
+                response_data = {
+                    'id': instance.id,
+                    'name': instance.name,
+                    'phone': instance.phone,
+                    'status': new_status,
+                    'deleted': True,
+                    'moved_to_history': True,
+                    'history_id': history_entry.id,
+                    'message': f'Appointment {new_status.lower()} and moved to history'
+                }
+                # Delete the appointment
+                instance.delete()
+                return Response(response_data, status=status.HTTP_200_OK)
+        
+        # Only update if not deleted
+        self.perform_update(serializer)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
@@ -121,6 +147,19 @@ class AppointmentHistoryViewSet(viewsets.ModelViewSet):
     queryset = AppointmentHistory.objects.all().order_by('-timestamp')
     serializer_class = AppointmentHistorySerializer
 
+    def get_queryset(self):
+        """Filter history by phone number if provided."""
+        qs = super().get_queryset()
+        phone = self.request.query_params.get('phone', None)
+        if phone:
+            import re
+            # Normalize to digits only for flexible matching
+            query_digits = re.sub(r"\D", "", str(phone))
+            if query_digits:
+                # Filter records where phone contains the search digits
+                qs = qs.filter(phone__icontains=query_digits)
+        return qs
+
     @action(detail=True, methods=['post'])
     def mark_visited(self, request, pk=None):
         """Mark a history entry as visited (patient arrived)."""
@@ -140,11 +179,20 @@ class DoctorViewSet(viewsets.ModelViewSet):
         if service:
             qs = qs.filter(service=service)
         return qs
+class FeedbackListCreateView(generics.ListCreateAPIView):
+    queryset = Feedback.objects.all().order_by('-created_at')
+    serializer_class = FeedbackSerializer
+    permission_classes = [permissions.AllowAny]  # open for all
 
-class FeedbackCreateView(APIView):
-    def post(self, request):
-        serializer = FeedbackSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Feedback submitted successfully!"}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        """Filter feedback by phone number if provided."""
+        qs = super().get_queryset()
+        phone = self.request.query_params.get('phone', None)
+        if phone:
+            import re
+            # Normalize to digits only for flexible matching
+            query_digits = re.sub(r"\D", "", str(phone))
+            if query_digits:
+                # Filter records where phone contains the search digits
+                qs = qs.filter(phone__icontains=query_digits)
+        return qs

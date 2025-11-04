@@ -26,7 +26,7 @@ export default function AppointmentsPage() {
   const [items, setItems] = useState<(Appointment | SearchResult)[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState(""); // digits-only phone input
+  const [search, setSearch] = useState(""); // live phone number search
   const [statusFilter, setStatusFilter] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -36,56 +36,123 @@ export default function AppointmentsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError("");
+ const fetchData = useCallback(async () => {
+  setLoading(true);
+  setError("");
 
-    try {
-      // Phone number search mode
-      if (search) {
-        const params = new URLSearchParams({ phone: search });
-        const response = await fetch(`/api/appointments/by_phone/?${params}`);
-        
-        if (!response.ok) {
-          const error: ApiError = await response.json();
-          throw new Error(error.detail || error.message || 'Failed to fetch appointments');
-        }
-        
-        const data: SearchResult[] = await response.json();
-        setItems(Array.isArray(data) ? data : []);
-        setTotalCount(Array.isArray(data) ? data.length : 0);
-      } 
-      // Regular paginated fetch with filters
-      else {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          page_size: pageSize.toString(),
-          ...(statusFilter && { status: statusFilter }),
-          ...(serviceFilter && { service: serviceFilter }),
-          ...(dateFrom && { date_from: dateFrom }),
-          ...(dateTo && { date_to: dateTo }),
-        });
+  try {
+    // Phone number search mode
+    if (search) {
+      const params = new URLSearchParams({ phone: search });
+      const url = `/api/appointments/by_phone/?${params}`;
+      const response = await fetch(url);
 
-        const response = await fetch(`/api/appointments/?${params}`);
-        
-        if (!response.ok) {
-          const error: ApiError = await response.json();
-          throw new Error(error.detail || error.message || 'Failed to fetch appointments');
+      if (!response.ok) {
+        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            errorMessage = errorData.detail || errorData.message || errorMessage;
+          }
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError);
         }
-        
-        const data: PaginatedResponse = await response.json();
-        setItems(data.results || []);
-        setTotalCount(data.count || 0);
+        throw new Error(errorMessage);
       }
-    } catch (err) {
-      console.error('Error fetching appointments:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch appointments');
-      setItems([]);
-      setTotalCount(0);
-    } finally {
-      setLoading(false);
+
+      const responseText = await response.text();
+      if (process.env.NODE_ENV === "development") {
+        console.log("Raw response:", responseText.substring(0, 500));
+      }
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        console.error("Response text:", responseText.substring(0, 500));
+        throw new Error("Server returned invalid JSON. Please check the console for details.");
+      }
+
+      // ✅ Fix: handle both array or object response
+      const itemsArray = Array.isArray(data)
+        ? data
+        : Array.isArray(data.results)
+        ? data.results
+        : [];
+      const total = Array.isArray(data)
+        ? data.length
+        : data.count || itemsArray.length || 0;
+
+      setItems(itemsArray);
+      setTotalCount(total);
+    } 
+    // Regular paginated fetch with filters
+    else {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        page_size: pageSize.toString(),
+        ...(statusFilter && { status: statusFilter }),
+        ...(serviceFilter && { service: serviceFilter }),
+        ...(dateFrom && { date_from: dateFrom }),
+        ...(dateTo && { date_to: dateTo }),
+      });
+
+      const url = `/api/appointments/?${params}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            errorMessage = errorData.detail || errorData.message || errorMessage;
+          }
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError);
+        }
+        throw new Error(errorMessage);
+      }
+
+      const responseText = await response.text();
+      if (process.env.NODE_ENV === "development") {
+        console.log("Raw response:", responseText.substring(0, 500));
+      }
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        console.error("Response text:", responseText.substring(0, 500));
+        throw new Error("Server returned invalid JSON. Please check the console for details.");
+      }
+
+      // ✅ Fix: support both paginated object and plain array
+      const itemsArray = Array.isArray(data)
+        ? data
+        : Array.isArray(data.results)
+        ? data.results
+        : [];
+      const total = Array.isArray(data)
+        ? data.length
+        : data.count || itemsArray.length || 0;
+
+      setItems(itemsArray);
+      setTotalCount(total);
     }
-  }, [search, page, pageSize, statusFilter, serviceFilter, dateFrom, dateTo]);
+  } catch (err) {
+    console.error("Error fetching appointments:", err);
+    setError(err instanceof Error ? err.message : "Failed to fetch appointments");
+    setItems([]);
+    setTotalCount(0);
+  } finally {
+    setLoading(false);
+  }
+}, [search, page, pageSize, statusFilter, serviceFilter, dateFrom, dateTo]);
+
 
   // Debounced version for search
   const debouncedFetch = useCallback(
@@ -108,7 +175,7 @@ export default function AppointmentsPage() {
     };
   }, [search, page, statusFilter, serviceFilter, dateFrom, dateTo, debouncedFetch, fetchData]);
 
-  // Handle phone number input
+  // Handle phone number input - live search
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, ""); // Strip non-digits
     setSearch(value);
@@ -151,7 +218,7 @@ export default function AppointmentsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
-            <p className="text-gray-600 mt-1">{search ? "Searching by phone..." : "Manage patient appointments"}</p>
+            <p className="text-gray-600 mt-1">{search ? `Searching phone: ${search}` : "Manage patient appointments"}</p>
           </div>
 
           <div className="flex gap-2">
@@ -178,7 +245,7 @@ export default function AppointmentsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by phone number..."
+                placeholder="Live search by phone number (digits only)..."
                 value={search}
                 onChange={handleSearchChange}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
