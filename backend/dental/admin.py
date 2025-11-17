@@ -10,7 +10,7 @@ from unfold.contrib.import_export.forms import (ExportForm, ImportForm,
 from unfold.forms import (AdminPasswordChangeForm, UserChangeForm,
                           UserCreationForm)
 
-from .models import Appointment, AppointmentHistory, Doctor, Feedback
+from .models import Appointment, AppointmentHistory, Doctor, Feedback, Service
 
 admin.site.unregister(User)
 
@@ -22,6 +22,15 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     form = UserChangeForm
     add_form = UserCreationForm
     change_password_form = AdminPasswordChangeForm
+
+
+@admin.register(Service)
+class ServiceAdmin(ModelAdmin, ImportExportModelAdmin):
+    list_display = ('id', 'name')
+    list_display_links = ('id', 'name')
+    search_fields = ('name',)
+    import_Form_class = ImportForm
+    export_Form_class = ExportForm
 
 
 
@@ -66,7 +75,7 @@ class AppointmentAdmin(ModelAdmin, ImportExportModelAdmin):
                     name=old.name,
                     email=old.email,
                     phone=old.phone,
-                    service=old.service,
+                    service_name=old.service.name if old.service else None,
                     appointment_date=old.appointment_date,
                     appointment_time=old.appointment_time,
                     message=old.message,
@@ -107,17 +116,17 @@ class AppointmentAdmin(ModelAdmin, ImportExportModelAdmin):
 
 @admin.register(AppointmentHistory)
 class AppointmentHistoryAdmin(ModelAdmin, ImportExportModelAdmin):
-    list_display = ('id', 'name', 'phone', 'previous_status', 'new_status', 'changed_by', 'timestamp')
+    list_display = ('id', 'name', 'phone', 'previous_status', 'new_status',  'changed_by', 'visited', 'timestamp')
     list_display_links = ('id', 'name', 'phone')
-    list_filter = ('previous_status', 'new_status', 'changed_by', 'timestamp')
+    list_filter = ('previous_status', 'new_status', 'changed_by', 'visited', 'timestamp')
     readonly_fields = (
         'appointment', 'name', 'email', 'phone', 'doctor_id', 'doctor_name',
         'previous_status', 'new_status', 'changed_by', 'notes', 'timestamp'
     )
     fields = (
         'appointment', 'name', 'email', 'phone', 'doctor_id', 'doctor_name',
-        'service', 'appointment_date', 'appointment_time', 'message',
-        'previous_status', 'new_status', 'changed_by', 'notes', 'timestamp'
+        'service_name', 'appointment_date', 'appointment_time', 'message',
+        'previous_status', 'new_status',  'changed_by', 'notes', 'visited', 'timestamp'
     )
     import_Form_class = ImportForm
     export_Form_class = ExportForm

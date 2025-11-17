@@ -3,6 +3,19 @@
 import { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
 
+interface Service {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface Doctor {
+  id: number;
+  name: string;
+  service: number;
+  service_name: string;
+}
+
 export default function BookNowSection() {
   const [formData, setFormData] = useState({
     name: "",
@@ -14,7 +27,9 @@ export default function BookNowSection() {
     time: "",
     message: "",
   });
-  const [doctors, setDoctors] = useState<Array<{ id: number; name: string; service: string }>>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState("");
@@ -98,6 +113,20 @@ export default function BookNowSection() {
 
   useEffect(() => {
     let mounted = true;
+    setLoadingServices(true);
+    fetch("http://localhost:8000/api/services/")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!mounted) return;
+        setServices(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoadingServices(false));
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
     setLoadingDoctors(true);
     fetch("http://localhost:8000/api/doctors/")
       .then((r) => r.json())
@@ -113,7 +142,7 @@ export default function BookNowSection() {
   const handleDoctorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     const doc = doctors.find((d) => String(d.id) === String(val));
-    setFormData((s) => ({ ...s, doctor: val, service: doc ? doc.service : s.service }));
+    setFormData((s) => ({ ...s, doctor: val, service: doc ? String(doc.service) : s.service }));
   };
 
   return (
@@ -243,15 +272,15 @@ export default function BookNowSection() {
                       required
                       value={formData.service}
                       onChange={(e) => { handleInputChange(e); setFormData((s) => ({ ...s, doctor: "" })); }}
-                      className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      disabled={loadingServices}
+                      className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                     >
-                      <option value="">Select a Service</option>
-                      <option value="General Checkup">General Checkup</option>
-                      <option value="Periodontist">Periodontist</option>
-                      <option value="Orthodontics">Orthodontics</option>
-                      <option value="Endodontist">Endodontist</option>
-                      <option value="Oral Surgery">Oral Surgery</option>
-                      <option value="Prosthodontist">Prosthodontist</option>
+                      <option value="">{loadingServices ? "Loading services..." : "Select a Service"}</option>
+                      {services.map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.name}
+                        </option>
+                      ))}
                     </select>
                     {errors.service && <p className="mt-1 text-sm text-red-600">{errors.service}</p>}
                   </div>
@@ -261,14 +290,13 @@ export default function BookNowSection() {
                     <select
                       id="doctor"
                       name="doctor"
-                      required
                       value={formData.doctor}
                       onChange={handleDoctorChange}
                       disabled={!formData.service || loadingDoctors}
                       className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                     >
                       <option value="">{formData.service ? "Select a Doctor" : "Select a Service first"}</option>
-                      {doctors.filter((d) => d.service === formData.service).map((doc) => (
+                      {doctors.filter((d) => String(d.service) === String(formData.service)).map((doc) => (
                         <option key={doc.id} value={doc.id}>Dr. {doc.name}</option>
                       ))}
                     </select>

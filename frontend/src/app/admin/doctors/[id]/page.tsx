@@ -96,7 +96,11 @@ export default function DoctorDetailPage() {
               <input
                 type="text"
                 value={doctor.name}
-                readOnly
+                onChange={(e) => {
+                  const text = e.target.value;
+                  setDoctor({ ...doctor, name: text });
+                }}
+                // readOnly
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
               />
             </div>
@@ -108,7 +112,7 @@ export default function DoctorDetailPage() {
               <input
                 type="text"
                 value={doctor.service}
-                readOnly
+                // readOnly
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
               />
             </div>
@@ -120,7 +124,7 @@ export default function DoctorDetailPage() {
               <input
                 type="email"
                 value={doctor.email || ""}
-                readOnly
+                // readOnly
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
               />
             </div>
@@ -132,7 +136,7 @@ export default function DoctorDetailPage() {
               <input
                 type="text"
                 value={doctor.phone || ""}
-                readOnly
+                // readOnly
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
               />
             </div>
@@ -142,11 +146,10 @@ export default function DoctorDetailPage() {
                 Status
               </label>
               <span
-                className={`inline-block px-3 py-2 text-sm font-medium rounded-lg ${
-                  doctor.active
+                className={`inline-block px-3 py-2 text-sm font-medium rounded-lg ${doctor.active
                     ? "bg-green-100 text-green-800"
                     : "bg-gray-100 text-gray-800"
-                }`}
+                  }`}
               >
                 {doctor.active ? "Active" : "Inactive"}
               </span>

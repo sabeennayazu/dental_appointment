@@ -44,7 +44,7 @@ export default function DashboardPage() {
         router.push("/admin/login");
         return;
       }
-      
+
       const userData = authService.getUser();
       setUser(userData);
       fetchStats();
@@ -60,11 +60,11 @@ export default function DashboardPage() {
       const appointmentsRes = await apiClient.get<any>("/api/appointments/");
       const appointments = await appointmentsRes.results || appointmentsRes || [];
 
-      
+
       // Fetch doctors
       const doctorsRes = await apiClient.get<any>("/api/doctors/");
       const doctors = doctorsRes.results || doctorsRes || [];
-      
+
       // Fetch feedback (may not exist yet)
       let feedback: any[] = [];
       try {
@@ -225,22 +225,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-          {/* Phone search (appointments + history) */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Search Appointments by Phone</h2>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="tel"
-                  placeholder="Enter phone number"
-                  value={searchPhone}
-                  onChange={(e) => setSearchPhone(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none"
-                />
-              </div>
-              <button
-                onClick={async () => {
+        {/* Phone search (appointments + history) */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Search Appointments by Phone</h2>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="tel"
+                placeholder="Enter phone number"
+                value={searchPhone}
+                onChange={async (e) => {
+                  setSearchPhone(e.target.value)
+
                   setSearchLoading(true);
                   setSearchError("");
                   try {
@@ -253,60 +250,77 @@ export default function DashboardPage() {
                     setSearchLoading(false);
                   }
                 }}
-                disabled={!searchPhone.trim() || searchLoading}
-                className="px-4 py-2 bg-cyan-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cyan-700 transition"
-              >
-                {searchLoading ? 'Searching...' : 'Search'}
-              </button>
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none"
+              />
             </div>
-
-            {/* Results */}
-            <div className="mt-4">
-              {searchLoading ? (
-                <p className="text-gray-500">Searching...</p>
-              ) : searchError ? (
-                <p className="text-red-500">{searchError}</p>
-              ) : searchResults.length === 0 ? (
-                <p className="text-gray-500">No results</p>
-              ) : (
-                <div className="divide-y divide-gray-200">
-                  {searchResults.map((r) => (
-                    <div key={`${r._source}:${r.id}`} className="py-3 flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {r.name} <span className="text-xs text-gray-500">({r._source})</span>
-                        </div>
-                        <div className="text-sm text-gray-500">{r.phone} • {r.appointment_date || r.timestamp || ''} {r.appointment_time || ''}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {r._source === 'history' && (
-                          <div className="text-sm text-gray-700">Status: <span className="font-medium">{r.status || 'unvisited'}</span></div>
-                        )}
-                        <button
-                          onClick={async () => {
-                            if (r._source === 'history') {
-                              try {
-                                await apiClient.post(`/api/history/${r.id}/mark_visited/`);
-                                // update local result
-                                setSearchResults((prev) => prev.map((p) => (p._source === 'history' && p.id === r.id ? { ...p, status: 'visited' } : p)));
-                              } catch (err) {
-                                console.error(err);
-                              }
-                            } else {
-                              router.push(`/admin/appointments/${r.id}`);
-                            }
-                          }}
-                          className="px-3 py-2 bg-white border rounded-lg text-sm text-cyan-700 hover:bg-cyan-50"
-                        >
-                          {r._source === 'history' ? 'Mark visited' : 'Open'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <button
+              onClick={async () => {
+                setSearchLoading(true);
+                setSearchError("");
+                try {
+                  const res = await apiClient.get<any>(`/api/appointments/by_phone/`, { phone: searchPhone });
+                  setSearchResults(Array.isArray(res) ? res : (res.results || []));
+                } catch (err: any) {
+                  setSearchError(err.message || 'No results');
+                  setSearchResults([]);
+                } finally {
+                  setSearchLoading(false);
+                }
+              }}
+              disabled={!searchPhone.trim() || searchLoading}
+              className="px-4 py-2 bg-cyan-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cyan-700 transition"
+            >
+              {searchLoading ? 'Searching...' : 'Search'}
+            </button>
           </div>
+
+          {/* Results */}
+          <div className="mt-4">
+            {searchLoading ? (
+              <p className="text-gray-500">Searching...</p>
+            ) : searchError ? (
+              <p className="text-red-500">{searchError}</p>
+            ) : searchResults.length === 0 ? (
+              <p className="text-gray-500">No results</p>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {searchResults.map((r) => (
+                  <div key={`${r._source}:${r.id}`} className="py-3 flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {r.name} <span className="text-xs text-gray-500">({r._source})</span>
+                      </div>
+                      <div className="text-sm text-gray-500">{r.phone} • {r.appointment_date || r.timestamp || ''} {r.appointment_time || ''}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {r._source === 'history' && (
+                        <div className="text-sm text-gray-700">Status: <span className="font-medium">{r.status || 'unvisited'}</span></div>
+                      )}
+                      <button
+                        onClick={async () => {
+                          if (r._source === 'history') {
+                            try {
+                              await apiClient.post(`/api/history/${r.id}/mark_visited/`);
+                              // update local result
+                              setSearchResults((prev) => prev.map((p) => (p._source === 'history' && p.id === r.id ? { ...p, status: 'visited' } : p)));
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          } else {
+                            router.push(`/admin/appointments/${r.id}`);
+                          }
+                        }}
+                        className="px-3 py-2 bg-white border rounded-lg text-sm text-cyan-700 hover:bg-cyan-50"
+                      >
+                        {r._source === 'history' ? 'Mark visited' : 'Open'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* User Info */}
         {user && (

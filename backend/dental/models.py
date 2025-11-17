@@ -3,6 +3,19 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 
+class Service(models.Model):
+	"""Represents a dental service offered."""
+	name = models.CharField(max_length=255, unique=True)
+	description = models.TextField(blank=True, null=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ['name']
+
+	def __str__(self):
+		return self.name
+
+
 class Appointment(models.Model):
 	STATUS_CHOICES = [
 		('PENDING', 'Pending'),
@@ -10,20 +23,10 @@ class Appointment(models.Model):
 		('REJECTED', 'Rejected'),
 	]
 
-	# canonical list of services shown in admin dropdowns and used across the app
-	SERVICE_CHOICES = [
-		('General Checkup', 'General Checkup'),
-		('Periodontist', 'Periodontist'),
-		('Orthodontics', 'Orthodontics'),
-		('Endodontist', 'Endodontist'),
-		('Oral Surgery', 'Oral Surgery'),
-		('Prosthodontist', 'Prosthodontist'),
-	]
-
 	name = models.CharField(max_length=255, blank=True, null=True)
 	email = models.EmailField(blank=True, null=True)
 	phone = models.CharField(max_length=50, blank=True, null=True)
-	service = models.CharField(max_length=255, choices=SERVICE_CHOICES, blank=True, null=True)
+	service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
 	# link to a Doctor (optional)
 	doctor = models.ForeignKey('Doctor', on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
 	appointment_date = models.DateField(blank=True, null=True, default=timezone.now)
@@ -49,7 +52,7 @@ class AppointmentHistory(models.Model):
 	name = models.CharField(max_length=255, blank=True, null=True)
 	email = models.EmailField(blank=True, null=True)
 	phone = models.CharField(max_length=50, blank=True, null=True)
-	service = models.CharField(max_length=255, blank=True, null=True)
+	service_name = models.CharField(max_length=255, blank=True, null=True)  # snapshot of service name
 	appointment_date = models.DateField(blank=True, null=True)
 	appointment_time = models.TimeField(blank=True, null=True)
 	message = models.TextField(blank=True, null=True)
@@ -69,7 +72,7 @@ class AppointmentHistory(models.Model):
 		('unvisited', 'Unvisited'),
 		('visited', 'Visited'),
 	]
-	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unvisited')
+	visited = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unvisited')
 
 	def __str__(self):
 		return f"History for {self.name} ({self.phone}) at {self.timestamp}"
@@ -77,14 +80,14 @@ class AppointmentHistory(models.Model):
 
 class Doctor(models.Model):
 	name = models.CharField(max_length=255)
-	# reuse service choices so doctors are associated with one service
-	service = models.CharField(max_length=255, choices=Appointment.SERVICE_CHOICES)
+	# link to a Service (one doctor, one service specialty)
+	service = models.ForeignKey(Service, on_delete=models.PROTECT, related_name='doctors')
 	email = models.EmailField(blank=True, null=True)
 	phone = models.CharField(max_length=50, blank=True, null=True)
 	active = models.BooleanField(default=True)
 
 	def __str__(self):
-		return f"{self.name} — {self.service}"
+		return f"{self.name} — {self.service.name}"
 
 class Feedback(models.Model):
 	name = models.CharField(max_length=255, blank=True, null=True)

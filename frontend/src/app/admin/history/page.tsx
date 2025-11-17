@@ -246,8 +246,8 @@ export default function HistoryPage() {
                         {format(new Date(entry.timestamp), "MMM dd, yyyy HH:mm")}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <span className={`px-2 py-1 rounded-full ${entry.status === 'visited' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                          {entry.status || 'unvisited'}
+                        <span className={`px-2 py-1 rounded-full ${entry.visited === 'visited' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {entry.visited || 'unvisited'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -261,13 +261,13 @@ export default function HistoryPage() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          {entry.status !== 'visited' && (
+                          {entry.visited !== 'visited' && (
                             <button
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 try {
                                   await apiClient.post(`/api/history/${entry.id}/mark_visited/`);
-                                  setHistory((prev) => prev.map((h) => (h.id === entry.id ? { ...h, status: 'visited' } : h)));
+                                  setHistory((prev) => prev.map((h) => (h.id === entry.id ? { ...h, visited: 'visited' } : h)));
                                 } catch (err) {
                                   console.error(err);
                                 }

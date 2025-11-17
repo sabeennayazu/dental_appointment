@@ -5,7 +5,8 @@ export interface Appointment {
   name: string;
   email: string;
   phone: string;
-  service: string;
+  service: number | string;
+  service_name?: string;
   doctor: number | null;
   appointment_date: string;
   appointment_time: string;
@@ -22,7 +23,7 @@ export interface AppointmentHistory {
   name: string;
   email: string;
   phone: string;
-  service: string;
+  service_name: string;
   appointment_date: string;
   appointment_time: string;
   message: string;
@@ -31,7 +32,7 @@ export interface AppointmentHistory {
   previous_status: string;
   new_status: string;
   // visit tracking status: 'unvisited' | 'visited'
-  status?: 'unvisited' | 'visited';
+  visited?: 'unvisited' | 'visited';
   changed_by: string;
   notes: string;
   timestamp: string;
@@ -40,7 +41,8 @@ export interface AppointmentHistory {
 export interface Doctor {
   id: number;
   name: string;
-  service: string;
+  service: number;
+  service_name?: string;
   email: string;
   phone: string;
   active: boolean;

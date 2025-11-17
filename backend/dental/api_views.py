@@ -5,8 +5,8 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from .models import Appointment, AppointmentHistory, Doctor, Feedback
-from .serializers import AppointmentSerializer, AppointmentHistorySerializer, DoctorSerializer, FeedbackSerializer
+from .models import Appointment, AppointmentHistory, Doctor, Feedback, Service
+from .serializers import AppointmentSerializer, AppointmentHistorySerializer, DoctorSerializer, FeedbackSerializer, ServiceSerializer
 
 
 class AppointmentViewSet(viewsets.ModelViewSet):
@@ -46,7 +46,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 name=instance.name,
                 email=instance.email,
                 phone=instance.phone,
-                service=instance.service,
+                service_name=instance.service.name if instance.service else None,
                 appointment_date=instance.appointment_date,
                 appointment_time=instance.appointment_time,
                 message=instance.message,
@@ -164,13 +164,18 @@ class AppointmentHistoryViewSet(viewsets.ModelViewSet):
     def mark_visited(self, request, pk=None):
         """Mark a history entry as visited (patient arrived)."""
         obj = get_object_or_404(AppointmentHistory, pk=pk)
-        obj.status = 'visited'
+        obj.visited = 'visited'
         obj.save()
         return Response(self.get_serializer(obj).data)
 
 
+class ServiceViewSet(viewsets.ModelViewSet):
+    queryset = Service.objects.all().order_by('name')
+    serializer_class = ServiceSerializer
+
+
 class DoctorViewSet(viewsets.ModelViewSet):
-    queryset = Doctor.objects.filter(active=True).order_by('name')
+    queryset = Doctor.objects.order_by('name')
     serializer_class = DoctorSerializer
 
     def get_queryset(self):
