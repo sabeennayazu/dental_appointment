@@ -263,8 +263,8 @@ export default function AppointmentDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={appointment.service}
-                    readOnly
+                    value={appointment.service_name ??""}
+                    
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
                   />
                 </div>
@@ -276,7 +276,7 @@ export default function AppointmentDetailPage() {
                   <input
                     type="text"
                     value={appointment.appointment_date}
-                    readOnly
+                   
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
                   />
                 </div>
@@ -288,7 +288,7 @@ export default function AppointmentDetailPage() {
                   <input
                     type="text"
                     value={appointment.appointment_time}
-                    readOnly
+                   
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
                   />
                 </div>
