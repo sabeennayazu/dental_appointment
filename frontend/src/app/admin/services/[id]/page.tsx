@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
@@ -18,13 +18,8 @@ export default function ServiceDetailPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (id) {
-      fetchService();
-    }
-  }, [id]);
-
-  const fetchService = async () => {
+  const fetchService = useCallback(async () => {
+    if (!id) return;
     try {
       const data = await apiClient.get<Service>(`/api/services/${id}/`);
       setService(data);
@@ -33,7 +28,11 @@ export default function ServiceDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchService();
+  }, [fetchService]);
 
   const handleSave = async () => {
     if (!service) return;

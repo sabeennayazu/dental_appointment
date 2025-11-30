@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
@@ -29,16 +29,7 @@ export default function AppointmentDetailPage() {
   const [adminNotes, setAdminNotes] = useState("");
   const [showHistory, setShowHistory] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      fetchAppointment();
-      fetchHistory();
-      fetchDoctors();
-      fetchServices();
-    }
-  }, [id]);
-
-  const fetchAppointment = async () => {
+  const fetchAppointment = useCallback(async () => {
     try {
       const data = await apiClient.get<Appointment>(`/api/appointments/${id}/`);
       setAppointment(data);
@@ -48,9 +39,9 @@ export default function AppointmentDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       // Try to fetch history for this specific appointment
       const response = await apiClient.get<any>("/api/history/", {
@@ -65,9 +56,9 @@ export default function AppointmentDetailPage() {
     } catch (err) {
       console.error("Failed to fetch history:", err);
     }
-  };
+  }, [id]);
 
-  const fetchDoctors = async () => {
+  const fetchDoctors = useCallback(async () => {
     try {
       const response = await apiClient.get<any>("/api/doctors/");
       if (response.results) {
@@ -78,9 +69,9 @@ export default function AppointmentDetailPage() {
     } catch (err) {
       console.error("Failed to fetch doctors:", err);
     }
-  };
+  }, []);
 
-  const fetchServices = async () => {
+  const fetchServices = useCallback(async () => {
     try {
       const response = await apiClient.get<any>("/api/services/");
       if (response.results) {
@@ -91,7 +82,16 @@ export default function AppointmentDetailPage() {
     } catch (err) {
       console.error("Failed to fetch services:", err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (id) {
+      fetchAppointment();
+      fetchHistory();
+      fetchDoctors();
+      fetchServices();
+    }
+  }, [id, fetchAppointment, fetchHistory, fetchDoctors, fetchServices]);
 
   const handleStatusChange = async (newStatus: "APPROVED" | "REJECTED") => {
     if (!appointment) return;

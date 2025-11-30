@@ -225,21 +225,7 @@ export default function HistoryPage() {
         {/* Filters */}
           {showFilters && !search && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <select
-                          value={statusFilter}
-                          onChange={(e) => setStatusFilter(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
-                        >
-                          <option value="">All Statuses</option>
-                          {STATUS_CHOICES.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                     
         
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Service</label>
@@ -276,6 +262,9 @@ export default function HistoryPage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
                         />
                       </div>
+                      <div>
+                        <button className="bg-red">Apply Filters</button>
+                        </div>
                     </div>
                   )}  
 

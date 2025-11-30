@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
@@ -17,13 +17,8 @@ export default function HistoryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (id) {
-      fetchEntry();
-    }
-  }, [id]);
-
-  const fetchEntry = async () => {
+  const fetchEntry = useCallback(async () => {
+    if (!id) return;
     try {
       const data = await apiClient.get<AppointmentHistory>(`/api/history/${id}/`);
       setEntry(data);
@@ -32,7 +27,11 @@ export default function HistoryDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchEntry();
+  }, [fetchEntry]);
 
   const getStatusBadge = (status: string) => {
     const styles = {
