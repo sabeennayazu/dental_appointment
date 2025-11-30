@@ -24,23 +24,28 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def update(self, request, *args, **kwargs):
-        # prevent editing of user-provided fields via API (only allow status and admin_notes)
+        # Allow editing of appointment details
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        allowed = {'status', 'admin_notes'}
-        data = {k: v for k, v in request.data.items() if k in allowed}
-        serializer = self.get_serializer(instance, data=data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        # record history if status changes
-        old_status = instance.status
-        new_status = data.get('status')
         
-        # ✅ Create history entry BEFORE updating/deleting
-        if 'status' in data and old_status != new_status:
-            # snapshot doctor info if present
+        # Store old status before any changes
+        old_status = instance.status
+        new_status = request.data.get('status', old_status)
+        
+        # Process all allowed fields
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # ✅ UPDATE THE APPOINTMENT FIRST with all changes
+        self.perform_update(serializer)
+        
+        # ✅ Create history entry if status is changing
+        if old_status != new_status:
+            # Get the updated instance to capture new data
+            instance.refresh_from_db()
             doc = instance.doctor
             
-            # Create history entry
+            # Create history entry with UPDATED data (after changes)
             history_entry = AppointmentHistory.objects.create(
                 appointment=instance,
                 name=instance.name,
@@ -55,15 +60,16 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 previous_status=old_status,
                 new_status=new_status,
                 changed_by=str(request.user) if request.user.is_authenticated else 'api',
-                notes=data.get('admin_notes', '')
+                notes=instance.admin_notes or ''
             )
             
             # ✅ MATCH Django admin behavior: delete appointment if APPROVED or REJECTED
             if new_status in ('APPROVED', 'REJECTED'):
-                # Prepare response data BEFORE deleting
+                # Prepare response data with updated instance info
                 response_data = {
                     'id': instance.id,
                     'name': instance.name,
+                    'email': instance.email,
                     'phone': instance.phone,
                     'status': new_status,
                     'deleted': True,
@@ -75,8 +81,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 instance.delete()
                 return Response(response_data, status=status.HTTP_200_OK)
         
-        # Only update if not deleted
-        self.perform_update(serializer)
+        # Return updated data
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])

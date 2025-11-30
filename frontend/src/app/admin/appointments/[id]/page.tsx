@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
-import { Appointment, AppointmentHistory, Doctor } from "@/lib/types";
-import { ArrowLeft, Check, X, Save, History as HistoryIcon } from "lucide-react";
+import { Appointment, AppointmentHistory, Doctor, Service } from "@/lib/types";
+import { ArrowLeft, Check, X, History as HistoryIcon } from "lucide-react";
 import { format } from "date-fns";
 
 const safeFormatDate = (dateString?: string | null) => {
@@ -22,6 +22,7 @@ export default function AppointmentDetailPage() {
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [history, setHistory] = useState<AppointmentHistory[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -33,6 +34,7 @@ export default function AppointmentDetailPage() {
       fetchAppointment();
       fetchHistory();
       fetchDoctors();
+      fetchServices();
     }
   }, [id]);
 
@@ -78,6 +80,19 @@ export default function AppointmentDetailPage() {
     }
   };
 
+  const fetchServices = async () => {
+    try {
+      const response = await apiClient.get<any>("/api/services/");
+      if (response.results) {
+        setServices(response.results);
+      } else if (Array.isArray(response)) {
+        setServices(response);
+      }
+    } catch (err) {
+      console.error("Failed to fetch services:", err);
+    }
+  };
+
   const handleStatusChange = async (newStatus: "APPROVED" | "REJECTED") => {
     if (!appointment) return;
 
@@ -91,13 +106,28 @@ export default function AppointmentDetailPage() {
     setError("");
 
     try {
+      // Save all changes and update status
+      const updateData: any = {
+        name: appointment.name,
+        email: appointment.email,
+        phone: appointment.phone,
+        service: appointment.service,
+        doctor: appointment.doctor,
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        message: appointment.message,
+        admin_notes: adminNotes,
+        status: newStatus,
+      };
+
+      console.log("Sending update data to backend:", updateData);
+
       const updated = await apiClient.patch<Appointment>(
         `/api/appointments/${id}/`,
-        {
-          status: newStatus,
-          admin_notes: adminNotes,
-        }
+        updateData
       );
+
+      console.log("Backend response:", updated);
 
       setAppointment(updated);
       alert(`Appointment ${newStatus.toLowerCase()} successfully!`);
@@ -112,6 +142,7 @@ export default function AppointmentDetailPage() {
       }, 1500);
     } catch (err: any) {
       setError(err.message || `Failed to ${newStatus.toLowerCase()} appointment`);
+      console.error("Error details:", err);
     } finally {
       setSaving(false);
     }
@@ -226,9 +257,9 @@ export default function AppointmentDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={appointment.name}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                    value={appointment.name ?? ""}
+                    onChange={(e) => setAppointment({ ...appointment, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
                 </div>
 
@@ -239,8 +270,8 @@ export default function AppointmentDetailPage() {
                  <input
   type="email"
   value={appointment.email ?? ""}
-  readOnly
-  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+  onChange={(e) => setAppointment({ ...appointment, email: e.target.value })}
+  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
 />
 
                 </div>
@@ -251,9 +282,9 @@ export default function AppointmentDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={appointment.phone}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                    value={appointment.phone ?? ""}
+                    onChange={(e) => setAppointment({ ...appointment, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
                 </div>
 
@@ -261,12 +292,41 @@ export default function AppointmentDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Service
                   </label>
-                  <input
-                    type="text"
-                    value={appointment.service_name ??""}
-                    
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                  />
+                  <select
+                    value={appointment.service ?? ""}
+                    onChange={(e) => setAppointment({ ...appointment, service: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">Select Service</option>
+                    {services.map((svc) => (
+                      <option key={svc.id} value={svc.id}>
+                        {svc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Doctor
+                  </label>
+                  <select
+                    value={appointment.doctor ?? ""}
+                    onChange={(e) => setAppointment({ ...appointment, doctor: e.target.value ? Number(e.target.value) : null })}
+                    disabled={!appointment.service}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {appointment.service ? "Select Doctor (Optional)" : "Select a service first"}
+                    </option>
+                    {doctors
+                      .filter((doc) => doc.service === appointment.service)
+                      .map((doc) => (
+                        <option key={doc.id} value={doc.id}>
+                          {doc.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
 
                 <div>
@@ -275,8 +335,10 @@ export default function AppointmentDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={appointment.appointment_date}
-                   
+                    value={appointment.appointment_date ?? ""}
+                    onChange={(e) =>
+                      setAppointment({ ...appointment, appointment_date: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
                   />
                 </div>
@@ -287,8 +349,10 @@ export default function AppointmentDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={appointment.appointment_time}
-                   
+                    value={appointment.appointment_time ?? ""}
+                   onChange={(e)=>
+                      setAppointment({ ...appointment, appointment_time: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
                   />
                 </div>
@@ -299,9 +363,9 @@ export default function AppointmentDetailPage() {
                   </label>
                   <textarea
                     value={appointment.message || ""}
-                    readOnly
+                    onChange={(e) => setAppointment({ ...appointment, message: e.target.value })}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
                 </div>
               </div>
@@ -319,16 +383,9 @@ export default function AppointmentDetailPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
                 placeholder="Add internal notes about this appointment..."
               />
-              <div className="mt-4">
-                <button
-                  onClick={handleSaveNotes}
-                  disabled={saving}
-                  className="flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Notes
-                </button>
-              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                ℹ️ Notes and all changes will be saved when you click Approve or Reject
+              </p>
             </div>
 
             {/* History */}
@@ -391,7 +448,7 @@ export default function AppointmentDetailPage() {
                     className="w-full flex items-center justify-center px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition disabled:opacity-50"
                   >
                     <Check className="w-5 h-5 mr-2" />
-                    Approve
+                    {saving ? "Saving..." : "Approve"}
                   </button>
                   <button
                     onClick={() => handleStatusChange("REJECTED")}
@@ -399,7 +456,7 @@ export default function AppointmentDetailPage() {
                     className="w-full flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition disabled:opacity-50"
                   >
                     <X className="w-5 h-5 mr-2" />
-                    Reject
+                    {saving ? "Saving..." : "Reject"}
                   </button>
                 </div>
               </div>

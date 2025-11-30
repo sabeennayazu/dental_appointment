@@ -4,13 +4,23 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
-import { AppointmentHistory } from "@/lib/types";
+import { AppointmentHistory, Service } from "@/lib/types";
 import { Search, Eye } from "lucide-react";
 import { format } from "date-fns";
 import debounce from "lodash/debounce";
+import { Download, Upload } from "lucide-react";
+import { Filter } from "lucide-react";
 
 export default function HistoryPage() {
   const router = useRouter();
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const STATUS_CHOICES = ["PENDING", "APPROVED", "REJECTED"];
+  const [services, setServices] = useState<Service[]>([]);
+
   const [history, setHistory] = useState<AppointmentHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -18,6 +28,40 @@ export default function HistoryPage() {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(20);
+  const [items, setItems] = useState<AppointmentHistory[]>([]);
+
+   const handleExport = () => {
+    try {
+      const dataStr = JSON.stringify(items, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `appointments-${format(new Date(), "yyyy-MM-dd")}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert("Export failed: " + err.message);
+    }
+  };
+
+  const handleImport = () => {
+    alert("Import functionality coming soon");
+  };
+  
+
+  const fetchServices = useCallback(async () => {
+    try {
+      const response = await apiClient.get<any>("/api/services/");
+      if (response.results) {
+        setServices(response.results);
+      } else if (Array.isArray(response)) {
+        setServices(response);
+      }
+    } catch (err) {
+      console.error("Failed to fetch services:", err);
+    }
+  }, []);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -100,6 +144,7 @@ export default function HistoryPage() {
   );
 
   useEffect(() => {
+    fetchServices();
     if (search) {
       debouncedFetch();
     } else {
@@ -109,7 +154,7 @@ export default function HistoryPage() {
     return () => {
       debouncedFetch.cancel();
     };
-  }, [page, search, fetchHistory, debouncedFetch]);
+  }, [page, search, fetchHistory, debouncedFetch, fetchServices]);
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -126,14 +171,35 @@ export default function HistoryPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+
           <h1 className="text-2xl font-bold text-gray-900">Appointment History</h1>
           <p className="text-gray-600 mt-1">{search ? `Searching phone: ${search}` : "View all appointment status changes"}</p>
+          </div>
+           <div className="flex gap-2">
+            <button
+              onClick={handleImport}
+              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import
+            </button>
+            <button
+              onClick={handleExport}
+              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </button>
+          </div>
         </div>
 
         {/* Search */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="relative">
+                    <div className="flex flex-col sm:flex-row gap-4">
+
+          <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
@@ -147,7 +213,71 @@ export default function HistoryPage() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
             />
           </div>
+           <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filters
+            </button>
+            </div>
         </div>
+        {/* Filters */}
+          {showFilters && !search && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">All Statuses</option>
+                          {STATUS_CHOICES.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+        
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Service</label>
+                        <select
+                          value={serviceFilter}
+                          onChange={(e) => setServiceFilter(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">All Services</option>
+                          {services.map((svc) => (
+                            <option key={svc.id} value={svc.name}>
+                              {svc.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+        
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+                        <input
+                          type="date"
+                          value={dateFrom}
+                          onChange={(e) => setDateFrom(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+        
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+                        <input
+                          type="date"
+                          value={dateTo}
+                          onChange={(e) => setDateTo(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}  
 
         {/* Error message */}
         {error && (

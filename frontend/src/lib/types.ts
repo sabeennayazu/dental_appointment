@@ -1,5 +1,12 @@
 // Type definitions for the admin panel
 
+export interface Service {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+}
+
 export interface Appointment {
   id: number;
   name: string;

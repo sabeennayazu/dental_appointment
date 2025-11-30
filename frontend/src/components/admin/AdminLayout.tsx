@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   Home,
+  Stethoscope,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: Home },
   { name: "Appointments", href: "/admin/appointments", icon: Calendar },
   { name: "Doctors", href: "/admin/doctors", icon: Users },
+  { name: "Services", href: "/admin/services", icon: Stethoscope },
   { name: "History", href: "/admin/history", icon: History },
   { name: "Feedback", href: "/admin/feedback", icon: MessageSquare },
 ];

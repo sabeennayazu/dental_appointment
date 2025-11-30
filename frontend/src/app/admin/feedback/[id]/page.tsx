@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
 import { Feedback } from "@/lib/types";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { format } from "date-fns";
 
 export default function FeedbackDetailPage() {
@@ -15,6 +15,7 @@ export default function FeedbackDetailPage() {
 
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -60,23 +61,59 @@ export default function FeedbackDetailPage() {
     );
   }
 
+  const handleSaveChanges = async () => {
+    if (!feedback) return;
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const updated = await apiClient.patch<Feedback>(
+        `/api/feedback/${id}/`,
+        {
+          name: feedback.name,
+          phone: feedback.phone,
+          message: feedback.message,
+        }
+      );
+
+      setFeedback(updated);
+      alert("Feedback updated successfully!");
+    } catch (err: any) {
+      setError(err.message || "Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push("/admin/feedback")}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Feedback #{feedback.id}
-            </h1>
-            <p className="text-gray-600 mt-1">View feedback details</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push("/admin/feedback")}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Feedback #{feedback.id}
+              </h1>
+              <p className="text-gray-600 mt-1">View and edit feedback details</p>
+            </div>
           </div>
+          
+          <button
+            onClick={handleSaveChanges}
+            disabled={saving}
+            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition disabled:opacity-50 flex items-center"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
 
         {/* Error message */}
@@ -100,9 +137,9 @@ export default function FeedbackDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={feedback.name}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                    value={feedback.name || ""}
+                    onChange={(e) => setFeedback({ ...feedback, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
                 </div>
 
@@ -112,9 +149,9 @@ export default function FeedbackDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={feedback.phone}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                    value={feedback.phone || ""}
+                    onChange={(e) => setFeedback({ ...feedback, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
                 </div>
 
@@ -123,10 +160,10 @@ export default function FeedbackDetailPage() {
                     Message
                   </label>
                   <textarea
-                    value={feedback.message}
-                    readOnly
+                    value={feedback.message || ""}
+                    onChange={(e) => setFeedback({ ...feedback, message: e.target.value })}
                     rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
                 </div>
               </div>

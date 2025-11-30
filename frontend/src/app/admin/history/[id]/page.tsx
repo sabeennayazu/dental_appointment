@@ -84,7 +84,6 @@ export default function HistoryDetailPage() {
             <h1 className="text-2xl font-bold text-gray-900">
               History Entry #{entry.id}
             </h1>
-            <p className="text-gray-600 mt-1">View appointment history details</p>
           </div>
         </div>
 
@@ -101,7 +100,7 @@ export default function HistoryDetailPage() {
             {/* Patient Information */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Patient Information (Snapshot)
+                Patient Information 
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -146,7 +145,8 @@ export default function HistoryDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={entry.service_name}
+                    value={entry.service_name ?? ""}
+                    readOnly
                     
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
                   />
@@ -158,7 +158,8 @@ export default function HistoryDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={entry.appointment_date}
+                    value={entry.appointment_date ?? ""}
+                    readOnly
                    
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
                   />
@@ -170,8 +171,8 @@ export default function HistoryDetailPage() {
                   </label>
                   <input
                     type="text"
-                    value={entry.appointment_time}
-                    
+                    value={entry.appointment_time ?? ""}
+                    readOnly
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
                   />
                 </div>
@@ -183,7 +184,9 @@ export default function HistoryDetailPage() {
                     </label>
                     <input
                       type="text"
-                      value={`${entry.doctor_name} `}
+                      value={`${entry.doctor_name ?? "" } `}
+                      readOnly
+                      
                      
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
                     />
