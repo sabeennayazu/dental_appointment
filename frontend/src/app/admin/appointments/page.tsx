@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { Appointment, SERVICE_CHOICES, STATUS_CHOICES, SearchResult } from "@/lib/types";
+import { Appointment, SERVICE_CHOICES, STATUS_CHOICES } from "@/lib/types";
 import { Search, Filter, Eye, Upload, Download } from "lucide-react";
 import { format } from "date-fns";
 import debounce from "lodash/debounce";
+import { useAppointments } from "@/hooks/useAppointments";
 
 // API response types
 interface PaginatedResponse {
@@ -22,10 +23,7 @@ interface ApiError {
 export default function AppointmentsPage() {
   const router = useRouter();
 
-  // State
-  const [items, setItems] = useState<(Appointment | SearchResult)[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // State for filters and search
   const [search, setSearch] = useState(""); // live phone number search
   const [statusFilter, setStatusFilter] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
@@ -33,154 +31,76 @@ export default function AppointmentsPage() {
   const [dateTo, setDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
 
- const fetchData = useCallback(async () => {
-  setLoading(true);
-  setError("");
+  // Use the SWR hook for data fetching with history included
+  const {
+    data: items = [],
+    count: totalCount = 0,
+    error: fetchError,
+    isLoading,
+    isValidating,
+    mutate: refreshAppointments,
+  } = useAppointments({
+    page,
+    pageSize,
+    status: statusFilter,
+    service: serviceFilter,
+    dateFrom,
+    dateTo,
+    phone: search,
+    includeHistory: true, // Include historical appointments
+    enabled: true, // Always enable fetching
+  });
 
-  try {
-    // Phone number search mode
-    if (search) {
-      const params = new URLSearchParams({ phone: search });
-      const url = `/api/appointments/by_phone/?${params}`;
-      const response = await fetch(url);
+  // Log for debugging
+  useEffect(() => {
+    console.log('[AppointmentsPage] Data updated:', { 
+      itemsCount: items.length, 
+      totalCount, 
+      hasError: !!fetchError,
+      isLoading,
+      isValidating,
+      searchActive: !!search
+    });
+  }, [items, totalCount, fetchError, isLoading, isValidating, search]);
 
-      if (!response.ok) {
-        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
-        try {
-          const contentType = response.headers.get("content-type");
-          if (contentType && contentType.includes("application/json")) {
-            const errorData = await response.json();
-            errorMessage = errorData.detail || errorData.message || errorMessage;
-          }
-        } catch (parseError) {
-          console.error("Error parsing error response:", parseError);
-        }
-        throw new Error(errorMessage);
-      }
+  // Derive loading state and error message
+  const loading = isLoading || isValidating;
+  const error = fetchError ? (fetchError as any).message : "";
 
-      const responseText = await response.text();
-      if (process.env.NODE_ENV === "development") {
-        console.log("Raw response:", responseText.substring(0, 500));
-      }
+  // Handle filter changes
+  const handleFilterChange = useCallback(() => {
+    setPage(1); // Reset to first page when filters change
+  }, []);
 
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        console.error("Response text:", responseText.substring(0, 500));
-        throw new Error("Server returned invalid JSON. Please check the console for details.");
-      }
-
-      // ✅ Fix: handle both array or object response
-      const itemsArray = Array.isArray(data)
-        ? data
-        : Array.isArray(data.results)
-        ? data.results
-        : [];
-      const total = Array.isArray(data)
-        ? data.length
-        : data.count || itemsArray.length || 0;
-
-      setItems(itemsArray);
-      setTotalCount(total);
-    } 
-    // Regular paginated fetch with filters
-    else {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        page_size: pageSize.toString(),
-        ...(statusFilter && { status: statusFilter }),
-        ...(serviceFilter && { service: serviceFilter }),
-        ...(dateFrom && { date_from: dateFrom }),
-        ...(dateTo && { date_to: dateTo }),
-      });
-
-      const url = `/api/appointments/?${params}`;
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
-        try {
-          const contentType = response.headers.get("content-type");
-          if (contentType && contentType.includes("application/json")) {
-            const errorData = await response.json();
-            errorMessage = errorData.detail || errorData.message || errorMessage;
-          }
-        } catch (parseError) {
-          console.error("Error parsing error response:", parseError);
-        }
-        throw new Error(errorMessage);
-      }
-
-      const responseText = await response.text();
-      if (process.env.NODE_ENV === "development") {
-        console.log("Raw response:", responseText.substring(0, 500));
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        console.error("Response text:", responseText.substring(0, 500));
-        throw new Error("Server returned invalid JSON. Please check the console for details.");
-      }
-
-      // ✅ Fix: support both paginated object and plain array
-      const itemsArray = Array.isArray(data)
-        ? data
-        : Array.isArray(data.results)
-        ? data.results
-        : [];
-      const total = Array.isArray(data)
-        ? data.length
-        : data.count || itemsArray.length || 0;
-
-      setItems(itemsArray);
-      setTotalCount(total);
-    }
-  } catch (err) {
-    console.error("Error fetching appointments:", err);
-    setError(err instanceof Error ? err.message : "Failed to fetch appointments");
-    setItems([]);
-    setTotalCount(0);
-  } finally {
-    setLoading(false);
-  }
-}, [search, page, pageSize, statusFilter, serviceFilter, dateFrom, dateTo]);
-
-
-  // Debounced version for search
-  const debouncedFetch = useCallback(
-    debounce(() => {
-      fetchData();
+  // Debounced search handler
+  const handleSearchChange = useCallback(
+    debounce((value: string) => {
+      setSearch(value);
+      setPage(1); // Reset to first page on new search
     }, 300),
-    [fetchData]
+    []
   );
 
-  // Effect for fetching data
-  useEffect(() => {
-    if (search) {
-      debouncedFetch();
-    } else {
-      fetchData();
-    }
-    
-    return () => {
-      debouncedFetch.cancel();
-    };
-  }, [search, page, statusFilter, serviceFilter, dateFrom, dateTo, debouncedFetch, fetchData]);
-
-  // Handle phone number input - live search
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, ""); // Strip non-digits
+  // Handle search input change
+  const onSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Strip non-digits
     setSearch(value);
-    setPage(1); // Reset to first page on search
+    handleSearchChange(value);
   };
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      handleSearchChange.cancel();
+    };
+  }, [handleSearchChange]);
+
+  // Handle refresh button click
+  const handleRefresh = useCallback(() => {
+    refreshAppointments();
+  }, [refreshAppointments]);
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -189,6 +109,11 @@ export default function AppointmentsPage() {
       REJECTED: "bg-red-100 text-red-800",
     };
     return styles[status] || "bg-gray-100 text-gray-800";
+  };
+
+  // Apply filters
+  const applyFilters = () => {
+    setPage(1);
   };
 
   const handleExport = () => {
@@ -223,11 +148,25 @@ export default function AppointmentsPage() {
 
           <div className="flex gap-2">
             <button
-              onClick={handleImport}
-              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              onClick={handleRefresh}
+              disabled={isValidating}
+              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Import
+              <svg 
+                className={`w-4 h-4 mr-2 ${isValidating ? 'animate-spin' : ''}`} 
+                xmlns="http://www.w3.org/2000/svg" 
+                fill="none" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  stroke="currentColor" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                />
+              </svg>
+              {isValidating ? 'Refreshing...' : 'Refresh'}
             </button>
             <button
               onClick={handleExport}
@@ -247,7 +186,7 @@ export default function AppointmentsPage() {
                 type="text"
                 placeholder="Live search by phone number (digits only)..."
                 value={search}
-                onChange={handleSearchChange}
+                onChange={onSearchChange}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
               />
             </div>
@@ -346,7 +285,7 @@ export default function AppointmentsPage() {
                     <td colSpan={7} className="px-6 py-12 text-center text-gray-500">No appointments found</td>
                   </tr>
                 ) : (
-                  items.map((appointment) => (
+                  items.map((appointment: Appointment) => (
                     <tr
                       key={appointment.id}
                       className="hover:bg-gray-50 cursor-pointer"
@@ -369,7 +308,7 @@ export default function AppointmentsPage() {
                         {appointment.phone}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {appointment.service}
+                        {appointment.service_name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {appointment.appointment_date ? format(new Date(appointment.appointment_date), "MMM d, yyyy") : "N/A"}

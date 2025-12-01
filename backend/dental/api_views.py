@@ -1,12 +1,16 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework import generics
+from rest_framework.generics import RetrieveAPIView
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from .models import Appointment, AppointmentHistory, Doctor, Feedback, Service
-from .serializers import AppointmentSerializer, AppointmentHistorySerializer, DoctorSerializer, FeedbackSerializer, ServiceSerializer
+from .serializers import AppointmentSerializer, AppointmentHistorySerializer, DoctorSerializer, FeedbackSerializer, ServiceSerializer, UserSerializer
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class AppointmentViewSet(viewsets.ModelViewSet):
@@ -206,3 +210,8 @@ class FeedbackListCreateView(generics.ListCreateAPIView):
                 # Filter records where phone contains the search digits
                 qs = qs.filter(phone__icontains=query_digits)
         return qs
+
+
+class UserDetailView(RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer

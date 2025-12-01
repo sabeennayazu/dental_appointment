@@ -16,7 +16,6 @@ import {
   Stethoscope,
   User as UserIcon,
 } from "lucide-react";
-import { UserProfileDropdown } from "./UserProfileDropdown";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -151,7 +150,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
 
             <div className="flex items-center space-x-4">
-              <UserProfileDropdown />
+              <Link href="/profile" className="flex items-center space-x-2">
+              <UserIcon className="w-6 h-6 text-gray-500" />
+              <span className="text-gray-700 font-medium">Admin User</span>
+              </Link>
             </div>
           </div>
         </header>

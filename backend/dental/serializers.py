@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Appointment, AppointmentHistory, Doctor, Feedback, Service
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 class ServiceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -46,3 +48,18 @@ class FeedbackSerializer(serializers.ModelSerializer):
         model = Feedback
         fields = ['id', 'name', 'phone', 'message', 'created_at']
         read_only_fields = ['created_at']
+        
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "is_staff",
+            "is_active",
+            "date_joined",
+        ]
