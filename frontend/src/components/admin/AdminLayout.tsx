@@ -23,8 +23,9 @@ interface AdminLayoutProps {
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: Home },
+  { name: "Users", href: "/admin/users", icon: Users },
   { name: "Appointments", href: "/admin/appointments", icon: Calendar },
-  { name: "Doctors", href: "/admin/doctors", icon: Users },
+  { name: "Doctors", href: "/admin/doctors", icon: Stethoscope },
   { name: "Services", href: "/admin/services", icon: Stethoscope },
   { name: "History", href: "/admin/history", icon: History },
   { name: "Feedback", href: "/admin/feedback", icon: MessageSquare },
@@ -151,8 +152,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
             <div className="flex items-center space-x-4">
               <Link href="/profile" className="flex items-center space-x-2">
-              <UserIcon className="w-6 h-6 text-gray-500" />
-              <span className="text-gray-700 font-medium">Admin User</span>
+              <UserIcon className="w-8 h-8 text-gray-500" />
               </Link>
             </div>
           </div>

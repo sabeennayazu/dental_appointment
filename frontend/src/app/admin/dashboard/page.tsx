@@ -296,24 +296,7 @@ export default function DashboardPage() {
                       {r._source === 'history' && (
                         <div className="text-sm text-gray-700">Status: <span className="font-medium">{r.status || 'unvisited'}</span></div>
                       )}
-                      <button
-                        onClick={async () => {
-                          if (r._source === 'history') {
-                            try {
-                              await apiClient.post(`/api/history/${r.id}/mark_visited/`);
-                              // update local result
-                              setSearchResults((prev) => prev.map((p) => (p._source === 'history' && p.id === r.id ? { ...p, status: 'visited' } : p)));
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          } else {
-                            router.push(`/admin/appointments/${r.id}`);
-                          }
-                        }}
-                        className="px-3 py-2 bg-white border rounded-lg text-sm text-cyan-700 hover:bg-cyan-50"
-                      >
-                        {r._source === 'history' ? 'Mark visited' : 'Open'}
-                      </button>
+                      
                     </div>
                   </div>
                 ))}
