@@ -353,4 +353,4 @@ export default function AppointmentsPage() {
     </AdminLayout>
   );
 }
-
+/* TODO: when the doctor is inactive it should not appear anywhere. the data should be in sync everywhere */
