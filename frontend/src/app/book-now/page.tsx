@@ -22,7 +22,6 @@ export default function BookNowSection() {
     email: "",
     phone: "",
     service: "",
-    doctor: "",
     date: "",
     time: "",
     message: "",
@@ -62,7 +61,6 @@ export default function BookNowSection() {
         email: formData.email,
         phone: formData.phone,
         service: formData.service,
-        doctor: formData.doctor || null,
         appointment_date: formData.date,
         appointment_time: formData.time,
         message: formData.message,
@@ -97,7 +95,6 @@ export default function BookNowSection() {
           email: "",
           phone: "",
           service: "",
-          doctor: "",
           date: "",
           time: "",
           message: "",
@@ -263,7 +260,7 @@ export default function BookNowSection() {
                 </div>
 
                 {/* --- NEW LAYOUT: Service / Doctor --- */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="w-full  ">
                   <div>
                     <label htmlFor="service" className="block text-sm font-medium text-gray-700">Service *</label>
                     <select
@@ -285,23 +282,7 @@ export default function BookNowSection() {
                     {errors.service && <p className="mt-1 text-sm text-red-600">{errors.service}</p>}
                   </div>
 
-                  <div>
-                    <label htmlFor="doctor" className="block text-sm font-medium text-gray-700">Doctor</label>
-                    <select
-                      id="doctor"
-                      name="doctor"
-                      value={formData.doctor}
-                      onChange={handleDoctorChange}
-                      disabled={!formData.service || loadingDoctors}
-                      className="mt-1 block w-full rounded-xl border border-gray-300 bg-white/90 py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                    >
-                      <option value="">{formData.service ? "Select a Doctor" : "Select a Service first"}</option>
-                      {doctors.filter((d) => String(d.service) === String(formData.service)).map((doc) => (
-                        <option key={doc.id} value={doc.id}>Dr. {doc.name}</option>
-                      ))}
-                    </select>
-                    {errors.doctor && <p className="mt-1 text-sm text-red-600">{errors.doctor}</p>}
-                  </div>
+                 
                 </div>
 
                 {/* --- NEW LAYOUT: Date / Time --- */}

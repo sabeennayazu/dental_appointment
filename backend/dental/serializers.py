@@ -52,14 +52,16 @@ class FeedbackSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False)
+    
     class Meta:
         model = User
         fields = [
-            "id",
-            "email",
-            "first_name",
-            "last_name",
-            "is_staff",
-            "is_active",
-            "date_joined",
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'is_staff', 'is_superuser', 'is_active', 
+            'date_joined', 'last_login', 'password'
         ]
+        read_only_fields = ['date_joined', 'last_login']
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }

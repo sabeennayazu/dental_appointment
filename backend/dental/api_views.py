@@ -211,7 +211,61 @@ class FeedbackListCreateView(generics.ListCreateAPIView):
                 qs = qs.filter(phone__icontains=query_digits)
         return qs
 
-
-class UserDetailView(RetrieveAPIView):
-    queryset = User.objects.all()
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
+    
+    def get_permissions(self):
+        """
+        Allow unauthenticated list/retrieve.
+        Restrict create, update, delete to admins only.
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Only admins can create, update, or delete users
+            return [permissions.IsAdminUser()]
+        # Allow unauthenticated access to list and retrieve endpoints
+        return [permissions.AllowAny()]
+    
+    def get_queryset(self):
+        """
+        Return all users (read-only access for all).
+        Write operations are restricted to admins by get_permissions().
+        """
+        return User.objects.all().order_by('-date_joined')
+    
+    def create(self, request, *args, **kwargs):
+        """Handle password hashing when creating users."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Hash the password before saving
+        user = User(**serializer.validated_data)
+        password = request.data.get('password')
+        if password:
+            user.set_password(password)
+        user.save()
+        
+        return Response(
+            UserSerializer(user).data,
+            status=status.HTTP_201_CREATED
+        )
+    
+    def update(self, request, *args, **kwargs):
+        """Handle password hashing when updating users."""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # Update fields
+        for attr, value in serializer.validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Hash password if provided
+        password = request.data.get('password')
+        if password:
+            instance.set_password(password)
+        
+        instance.save()
+        return Response(UserSerializer(instance).data)
+  

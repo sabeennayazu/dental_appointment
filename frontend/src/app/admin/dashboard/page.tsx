@@ -37,6 +37,14 @@ export default function DashboardPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
 
+function handleNav(id: string, type: string) {
+    if (type === 'active') {
+      router.push(`/admin/appointments/${id}`);
+    } else if (type === 'history') {
+      router.push(`/admin/history/${id}`);
+    }
+}
+
   useEffect(() => {
     const checkAuth = async () => {
       const isValid = await authService.verifyAuth();
@@ -285,7 +293,7 @@ export default function DashboardPage() {
             ) : (
               <div className="divide-y divide-gray-200">
                 {searchResults.map((r) => (
-                  <div key={`${r._source}:${r.id}`} className="py-3 flex items-center justify-between">
+                  <div key={`${r._source}:${r.id}`} className="py-3 flex items-center justify-between hover:cursor-pointer hover:bg-gray-200 transition" onClick={()=>handleNav(r.id,r._source)}>
                     <div>
                       <div className="text-sm font-medium text-gray-900">
                         {r.name} <span className="text-xs text-gray-500">({r._source})</span>
@@ -333,3 +341,4 @@ export default function DashboardPage() {
     </AdminLayout>
   );
 }
+//TODO: add service button in create doctor page
