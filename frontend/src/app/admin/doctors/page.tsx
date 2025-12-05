@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/api";
 import { Doctor, SERVICE_CHOICES } from "@/lib/types";
 import { Search, Plus, Eye, X } from "lucide-react";
 import debounce from "lodash/debounce";
+import { AddServiceModal } from "@/components/admin/AddServiceModal";
 
 interface Service {
   id: number;
@@ -22,6 +23,7 @@ export default function DoctorsPage() {
   const [search, setSearch] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddServiceModal, setShowAddServiceModal] = useState(false);
   const [savingDoctor, setSavingDoctor] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -131,8 +133,8 @@ export default function DoctorsPage() {
   const filteredDoctors = doctors.filter((doctor) =>
     search
       ? doctor.name.toLowerCase().includes(search.toLowerCase()) ||
-        doctor.email?.toLowerCase().includes(search.toLowerCase()) ||
-        doctor.phone?.toLowerCase().includes(search.toLowerCase())
+      doctor.email?.toLowerCase().includes(search.toLowerCase()) ||
+      doctor.phone?.toLowerCase().includes(search.toLowerCase())
       : true
   );
 
@@ -179,26 +181,37 @@ export default function DoctorsPage() {
     }
   };
 
+  const handleServiceAdded = (newService: Service) => {
+    // Add the new service to the list
+    setServices((prevServices) => [...prevServices, newService]);
+    
+    // Auto-select the newly added service
+    setFormData({ ...formData, service: newService.id.toString() });
+    
+    // Close the service modal
+    setShowAddServiceModal(false);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
 
-  {/* LEFT SIDE (title + subtitle) */}
-  <div>
-    <h1 className="text-2xl font-bold text-gray-900">Doctors</h1>
-    <p className="text-gray-600 mt-1">Manage doctors and their services</p>
-  </div>
+          {/* LEFT SIDE (title + subtitle) */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Doctors</h1>
+            <p className="text-gray-600 mt-1">Manage doctors and their services</p>
+          </div>
 
-  {/* RIGHT SIDE (add button) */}
-  <div className="flex flex-col items-center cursor-pointer" onClick={() => setShowAddModal(true)}>
-    <button className="w-14 h-14 flex items-center justify-center bg-[#3A7D7D] text-white rounded-full shadow-md hover:bg-[#326a6a] transition">
-<Plus />    </button>
-    <span className="text-sm font-bold text-gray-700 mt-1">Add Doctors</span>
-  </div>
+          {/* RIGHT SIDE (add button) */}
+          <div className="flex flex-col items-center cursor-pointer" onClick={() => setShowAddModal(true)}>
+            <button className="w-14 h-14 flex items-center justify-center bg-[#3A7D7D] text-white rounded-full shadow-md hover:bg-[#326a6a] transition">
+              <Plus />    </button>
+            <span className="text-sm font-bold text-gray-700 mt-1">Add Doctors</span>
+          </div>
 
-</div>
+        </div>
 
 
         {/* Search and Filters */}
@@ -302,11 +315,10 @@ export default function DoctorsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            doctor.active
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${doctor.active
                               ? "bg-green-100 text-green-800"
                               : "bg-gray-100 text-gray-800"
-                          }`}
+                            }`}
                         >
                           {doctor.active ? "Active" : "Inactive"}
                         </span>
@@ -333,7 +345,7 @@ export default function DoctorsPage() {
 
       {/* Add Doctor Modal */}
       {showAddModal && (
-<div className="fixed inset-0 bg-black/10 backdrop-blur flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-screen overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900">Add New Doctor</h2>
@@ -360,24 +372,40 @@ export default function DoctorsPage() {
                 />
               </div>
 
-              {/* Service */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Service *
-                </label>
-                <select
-                  value={formData.service}
-                  onChange={(e) => setFormData({ ...formData, service: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
-                >
-                  <option value="">Select a Service</option>
-                  {services.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {service.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Service */}
+<div className="flex items-end justify-center  gap-4">
+  <div className="w-4/5">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Service *
+    </label>
+
+    <select
+      value={formData.service}
+      onChange={(e) =>
+        setFormData({ ...formData, service: e.target.value })
+      }
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
+    >
+      <option value="">Select a Service</option>
+      {services.map((service) => (
+        <option key={service.id} value={service.id}>
+          {service.name}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div className="w-1/5 flex justify-end">
+    <button
+      onClick={() => setShowAddServiceModal(true)}
+      type="button"
+      className="w-9 h-9 flex items-center justify-center bg-[#3A7D7D] text-white rounded-full shadow-md hover:bg-[#326a6a] transition"
+    >
+      <Plus />
+    </button>
+  </div>
+</div>
+
 
               {/* Email */}
               <div>
@@ -418,14 +446,12 @@ export default function DoctorsPage() {
                   </span>
                   <button
                     onClick={() => setFormData({ ...formData, active: !formData.active })}
-                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition ${
-                      formData.active ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
+                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition ${formData.active ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
                   >
                     <span
-                      className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${
-                        formData.active ? 'translate-x-7' : 'translate-x-1'
-                      }`}
+                      className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${formData.active ? 'translate-x-7' : 'translate-x-1'
+                        }`}
                     />
                   </button>
                   <span className={`text-sm ${formData.active ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
@@ -454,6 +480,13 @@ export default function DoctorsPage() {
           </div>
         </div>
       )}
+
+      {/* Add Service Modal */}
+      <AddServiceModal
+        isOpen={showAddServiceModal}
+        onClose={() => setShowAddServiceModal(false)}
+        onServiceAdded={handleServiceAdded}
+      />
     </AdminLayout>
   );
 }

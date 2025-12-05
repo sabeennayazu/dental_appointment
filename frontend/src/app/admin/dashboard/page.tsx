@@ -341,4 +341,4 @@ function handleNav(id: string, type: string) {
     </AdminLayout>
   );
 }
-//TODO: add service button in create doctor page
+//TODO: add service button in create doctor page 
