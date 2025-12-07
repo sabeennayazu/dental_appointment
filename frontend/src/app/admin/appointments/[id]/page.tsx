@@ -1,12 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
 import { Appointment, AppointmentHistory, Doctor, Service } from "@/lib/types";
-import { ArrowLeft, Check, X, History as HistoryIcon } from "lucide-react";
-import { format } from "date-fns";
+import { ArrowLeft, Check, X, History as HistoryIcon, } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { CalendarIcon } from "lucide-react";
+import TimePicker from "react-time-picker";
+import { ClockIcon } from "lucide-react";
+import 'react-time-picker/dist/TimePicker.css';
+
+import { GoogleCalendarView } from "@/components/calendar/GoogleCalendarView";
+import {
+  validateAppointment,
+  checkAppointmentConflict,
+  getDoctorName,
+  getServiceName,
+} from "@/lib/appointment-sync";
 
 const safeFormatDate = (dateString?: string | null) => {
   if (!dateString) return "N/A";
@@ -28,6 +42,9 @@ export default function AppointmentDetailPage() {
   const [error, setError] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
 
   const fetchAppointment = useCallback(async () => {
     try {
@@ -47,7 +64,7 @@ export default function AppointmentDetailPage() {
       const response = await apiClient.get<any>("/api/history/", {
         appointment: id,
       });
-      
+
       if (response.results) {
         setHistory(response.results);
       } else if (Array.isArray(response)) {
@@ -84,6 +101,25 @@ export default function AppointmentDetailPage() {
     }
   }, []);
 
+  // Filter doctors based on selected service
+  useEffect(() => {
+    if (selectedServiceId && doctors.length > 0) {
+      // Filter doctors who provide the selected service
+      // Assuming doctors have a services array or similar relationship
+      // For now, show all doctors - adjust based on your API structure
+      setFilteredDoctors(doctors);
+    } else if (doctors.length > 0) {
+      setFilteredDoctors(doctors);
+    }
+  }, [selectedServiceId, doctors]);
+
+  // Trigger calendar refresh when appointment changes
+  useEffect(() => {
+    if (appointment) {
+      setCalendarRefreshKey((prev) => prev + 1);
+    }
+  }, [appointment?.doctor, appointment?.appointment_date, appointment?.appointment_time]);
+
   useEffect(() => {
     if (id) {
       fetchAppointment();
@@ -93,13 +129,65 @@ export default function AppointmentDetailPage() {
     }
   }, [id, fetchAppointment, fetchHistory, fetchDoctors, fetchServices]);
 
+  // Save appointment changes with validation
+  const handleSaveAppointment = async () => {
+    if (!appointment) return;
+
+    // Validate appointment
+    const validation = validateAppointment(appointment);
+    if (!validation.isValid) {
+      setError(validation.errors.join(", "));
+      return;
+    }
+
+    // Check for conflicts
+    const hasConflict = checkAppointmentConflict(appointment, [appointment], id);
+    if (hasConflict) {
+      setError(
+        "This time slot conflicts with another appointment for the same doctor"
+      );
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const updateData = {
+        name: appointment.name,
+        email: appointment.email,
+        phone: appointment.phone,
+        service: appointment.service,
+        doctor: appointment.doctor,
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        message: appointment.message,
+        admin_notes: adminNotes,
+      };
+
+      const updated = await apiClient.patch<Appointment>(
+        `/api/appointments/${id}/`,
+        updateData
+      );
+
+      setAppointment(updated);
+      setError("");
+      alert("Appointment saved successfully!");
+    } catch (err: any) {
+      setError(err.message || "Failed to save appointment");
+      console.error("Error saving appointment:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleStatusChange = async (newStatus: "APPROVED" | "REJECTED") => {
     if (!appointment) return;
 
     const confirmed = window.confirm(
       `Are you sure you want to ${newStatus.toLowerCase()} this appointment?`
     );
-    
+
     if (!confirmed) return;
 
     setSaving(true);
@@ -131,10 +219,10 @@ export default function AppointmentDetailPage() {
 
       setAppointment(updated);
       alert(`Appointment ${newStatus.toLowerCase()} successfully!`);
-      
+
       // Refresh history to show the new entry
       await fetchHistory();
-      
+
       // ✅ Django deletes approved/rejected appointments - redirect to list
       // The appointment is now in history, not in active appointments
       setTimeout(() => {
@@ -242,9 +330,8 @@ export default function AppointmentDetailPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">          {/* Main content */}
+          <div className=" space-y-6">
             {/* Patient Information */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -267,12 +354,12 @@ export default function AppointmentDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email
                   </label>
-                 <input
-  type="email"
-  value={appointment.email ?? ""}
-  onChange={(e) => setAppointment({ ...appointment, email: e.target.value })}
-  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
-/>
+                  <input
+                    type="email"
+                    value={appointment.email ?? ""}
+                    onChange={(e) => setAppointment({ ...appointment, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
+                  />
 
                 </div>
 
@@ -294,7 +381,11 @@ export default function AppointmentDetailPage() {
                   </label>
                   <select
                     value={appointment.service ?? ""}
-                    onChange={(e) => setAppointment({ ...appointment, service: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const serviceId = e.target.value ? Number(e.target.value) : 0;
+                      setSelectedServiceId(serviceId || null);
+                      setAppointment({ ...appointment, service: serviceId, doctor: null });
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
                   >
                     <option value="">Select Service</option>
@@ -333,29 +424,46 @@ export default function AppointmentDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Appointment Date
                   </label>
-                  <input
-                    type="text"
-                    value={appointment.appointment_date ?? ""}
-                    onChange={(e) =>
-                      setAppointment({ ...appointment, appointment_date: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                  />
+                  <div className="flex items-center gap-2">
+                    {/* Calendar icon triggers the datepicker */}
+                    <DatePicker
+                      selected={appointment.appointment_date ? new Date(appointment.appointment_date) : null}
+                      onChange={(date: Date | null) =>
+                        setAppointment({ ...appointment, appointment_date: date?.toISOString().split('T')[0] })
+                      }
+                      customInput={
+                        <div className="flex items-center cursor-pointer px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 w-full">
+                          <CalendarIcon className="h-7 w-7 text-gray-500 mr-2" />
+                          <input
+                            type="text"
+                            value={appointment.appointment_date ?? ""}
+                            readOnly
+                            className="w-full bg-transparent text-gray-700 outline-none"
+                          />
+                        </div>
+                      }
+                      dateFormat="yyyy-MM-dd"
+                    />
+                  </div>
                 </div>
+
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Appointment Time
                   </label>
-                  <input
-                    type="text"
-                    value={appointment.appointment_time ?? ""}
-                   onChange={(e)=>
-                      setAppointment({ ...appointment, appointment_time: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                  />
+                  <div className="flex items-center gap-2">
+                    <ClockIcon className="h-7 w-7 text-gray-500" />
+                    <TimePicker
+                      onChange={(time: string) => setAppointment({ ...appointment!, appointment_time: time })}
+                      value={appointment?.appointment_time ?? ""}
+                      disableClock={true} // hides the analog clock, optional
+                      clearIcon={null}     // hides clear button, optional
+                      className="w-full"
+                    />
+                  </div>
                 </div>
+
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -367,6 +475,17 @@ export default function AppointmentDetailPage() {
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
+                </div>
+
+                {/* Save Changes Button */}
+                <div className="md:col-span-2">
+                  <button
+                    onClick={handleSaveAppointment}
+                    disabled={saving}
+                    className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition disabled:opacity-50 font-medium"
+                  >
+                    {saving ? "Saving..." : "Save Changes"}
+                  </button>
                 </div>
               </div>
             </div>
@@ -433,6 +552,39 @@ export default function AppointmentDetailPage() {
                 )}
               </div>
             )}
+            {/* Metadata */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Metadata</h2>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Created At
+                  </label>
+                  <p className="text-sm text-gray-900">
+                    {safeFormatDate(appointment.created_at)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Updated At
+                  </label>
+                  <p className="text-sm text-gray-900">
+                    {safeFormatDate(appointment.updated_at)}
+                  </p>
+
+                </div>
+                {appointment.doctor && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Assigned Doctor
+                    </label>
+                    <p className="text-sm text-gray-900">
+                      {doctors.find((d) => d.id === appointment.doctor)?.name || `Doctor #${appointment.doctor}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -462,42 +614,32 @@ export default function AppointmentDetailPage() {
               </div>
             )}
 
-            {/* Metadata */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Metadata</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Created At
-                  </label>
-                  <p className="text-sm text-gray-900">
-                    {safeFormatDate(appointment.created_at)}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Updated At
-                  </label>
-                 <p className="text-sm text-gray-900">
-  {safeFormatDate(appointment.updated_at)}
-</p>
-
-                </div>
-                {appointment.doctor && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Assigned Doctor
-                    </label>
-                    <p className="text-sm text-gray-900">
-                      {doctors.find((d) => d.id === appointment.doctor)?.name || `Doctor #${appointment.doctor}`}
-                    </p>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Doctor Schedule</h2>
+              {appointment && appointment.doctor && (
+                <div className="space-y-4">
+                  <div className="mb-4 text-sm text-gray-600">
+                    {appointment.doctor_details && (
+                      <p className="font-medium">Doctor: Dr. {appointment.doctor_details.name}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">Showing appointments for the selected doctor</p>
                   </div>
-                )}
-              </div>
+                  <div className="h-[600px] border border-gray-200 rounded-lg overflow-hidden">
+                    <GoogleCalendarView
+                      key={calendarRefreshKey}
+                      doctorId={appointment.doctor as number}
+                      initialDate={appointment.appointment_date}
+                      view="week"
+                      compact={true}
+                      className="h-full"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
+
           </div>
         </div>
       </div>
     </AdminLayout>
-  );
-}
+)}

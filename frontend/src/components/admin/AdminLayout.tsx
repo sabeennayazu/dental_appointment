@@ -29,6 +29,7 @@ const navigation = [
   { name: "Services", href: "/admin/services", icon: Stethoscope },
   { name: "History", href: "/admin/history", icon: History },
   { name: "Feedback", href: "/admin/feedback", icon: MessageSquare },
+  { name: "Calendar", href: "/admin/calendar", icon: Calendar },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {

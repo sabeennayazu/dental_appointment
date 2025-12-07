@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from .models import Appointment, AppointmentHistory, Doctor, Feedback, Service
 from .serializers import AppointmentSerializer, AppointmentHistorySerializer, DoctorSerializer, FeedbackSerializer, ServiceSerializer, UserSerializer
 from django.contrib.auth import get_user_model
+import re
 
 User = get_user_model()
 
@@ -196,20 +197,25 @@ class DoctorViewSet(viewsets.ModelViewSet):
 class FeedbackListCreateView(generics.ListCreateAPIView):
     queryset = Feedback.objects.all().order_by('-created_at')
     serializer_class = FeedbackSerializer
-    permission_classes = [permissions.AllowAny]  # open for all
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        """Filter feedback by phone number if provided."""
         qs = super().get_queryset()
         phone = self.request.query_params.get('phone', None)
+
         if phone:
-            import re
-            # Normalize to digits only for flexible matching
             query_digits = re.sub(r"\D", "", str(phone))
             if query_digits:
-                # Filter records where phone contains the search digits
                 qs = qs.filter(phone__icontains=query_digits)
+
         return qs
+
+
+class FeedbackDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Feedback.objects.all()
+    serializer_class = FeedbackSerializer
+    permission_classes = [permissions.AllowAny]
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('-date_joined')

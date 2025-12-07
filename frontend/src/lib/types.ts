@@ -15,10 +15,11 @@ export interface Appointment {
   service: number | string;
   service_name?: string;
   doctor: number | null;
+  doctor_details?: Doctor | null;
   appointment_date: string;
   appointment_time: string;
   message: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
   admin_notes: string;
   created_at: string;
   updated_at: string;

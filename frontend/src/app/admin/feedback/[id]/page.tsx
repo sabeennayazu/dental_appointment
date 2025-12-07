@@ -8,6 +8,7 @@ import { Feedback } from "@/lib/types";
 import { ArrowLeft, Save } from "lucide-react";
 import { format } from "date-fns";
 
+
 export default function FeedbackDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -61,30 +62,7 @@ export default function FeedbackDetailPage() {
     );
   }
 
-  const handleSaveChanges = async () => {
-    if (!feedback) return;
-
-    setSaving(true);
-    setError("");
-
-    try {
-      const updated = await apiClient.patch<Feedback>(
-        `/api/feedback/${id}/`,
-        {
-          name: feedback.name,
-          phone: feedback.phone,
-          message: feedback.message,
-        }
-      );
-
-      setFeedback(updated);
-      alert("Feedback updated successfully!");
-    } catch (err: any) {
-      setError(err.message || "Failed to save changes");
-    } finally {
-      setSaving(false);
-    }
-  };
+  
 
   return (
     <AdminLayout>
@@ -106,14 +84,7 @@ export default function FeedbackDetailPage() {
             </div>
           </div>
           
-          <button
-            onClick={handleSaveChanges}
-            disabled={saving}
-            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition disabled:opacity-50 flex items-center"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
+          
         </div>
 
         {/* Error message */}
@@ -139,6 +110,7 @@ export default function FeedbackDetailPage() {
                     type="text"
                     value={feedback.name || ""}
                     onChange={(e) => setFeedback({ ...feedback, name: e.target.value })}
+                    readOnly
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
                 </div>
@@ -151,6 +123,7 @@ export default function FeedbackDetailPage() {
                     type="text"
                     value={feedback.phone || ""}
                     onChange={(e) => setFeedback({ ...feedback, phone: e.target.value })}
+                    readOnly
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
                 </div>
@@ -162,6 +135,7 @@ export default function FeedbackDetailPage() {
                   <textarea
                     value={feedback.message || ""}
                     onChange={(e) => setFeedback({ ...feedback, message: e.target.value })}
+                    readOnly
                     rows={6}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
