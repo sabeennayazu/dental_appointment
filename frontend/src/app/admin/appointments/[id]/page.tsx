@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useReducer } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
@@ -14,13 +14,68 @@ import TimePicker from "react-time-picker";
 import { ClockIcon } from "lucide-react";
 import 'react-time-picker/dist/TimePicker.css';
 
-import { GoogleCalendarView } from "@/components/calendar/GoogleCalendarView";
+import { EnhancedCalendarView } from "@/components/calendar/EnhancedCalendarView";
 import {
   validateAppointment,
   checkAppointmentConflict,
   getDoctorName,
   getServiceName,
 } from "@/lib/appointment-sync";
+import { calendarSyncManager } from "@/lib/calendar-sync";
+
+// State management for synchronized form + calendar
+// Uses a single source of truth with useReducer to manage:
+// - selectedDoctor: Currently selected doctor ID
+// - selectedDate: Currently selected appointment date
+// - selectedTime: Currently selected appointment time
+// - selectedService: Currently selected service ID
+// - appointments: Array of appointments for conflict detection
+interface AppointmentState {
+  selectedDoctor: number | null;
+  selectedDate: string | null;
+  selectedTime: string | null;
+  selectedService: number | null;
+  appointments: Appointment[];
+}
+
+type AppointmentAction =
+  | { type: 'SET_DOCTOR'; payload: number | null }
+  | { type: 'SET_DATE'; payload: string | null }
+  | { type: 'SET_TIME'; payload: string | null }
+  | { type: 'SET_SERVICE'; payload: number | null }
+  | { type: 'SET_SLOT'; payload: { date: string; time: string } }
+  | { type: 'SET_APPOINTMENTS'; payload: Appointment[] }
+  | { type: 'UPDATE_APPOINTMENT'; payload: Appointment };
+
+function appointmentReducer(state: AppointmentState, action: AppointmentAction): AppointmentState {
+  switch (action.type) {
+    case 'SET_DOCTOR':
+      return { ...state, selectedDoctor: action.payload };
+    case 'SET_DATE':
+      return { ...state, selectedDate: action.payload };
+    case 'SET_TIME':
+      return { ...state, selectedTime: action.payload };
+    case 'SET_SERVICE':
+      return { ...state, selectedService: action.payload };
+    case 'SET_SLOT':
+      return {
+        ...state,
+        selectedDate: action.payload.date,
+        selectedTime: action.payload.time
+      };
+    case 'SET_APPOINTMENTS':
+      return { ...state, appointments: action.payload };
+    case 'UPDATE_APPOINTMENT':
+      return {
+        ...state,
+        appointments: state.appointments.map(apt =>
+          apt.id === action.payload.id ? action.payload : apt
+        )
+      };
+    default:
+      return state;
+  }
+}
 
 const safeFormatDate = (dateString?: string | null) => {
   if (!dateString) return "N/A";
@@ -32,6 +87,15 @@ export default function AppointmentDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
+
+  // Synchronized state management
+  const [appointmentState, dispatch] = useReducer(appointmentReducer, {
+    selectedDoctor: null,
+    selectedDate: null,
+    selectedTime: null,
+    selectedService: null,
+    appointments: [],
+  });
 
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [history, setHistory] = useState<AppointmentHistory[]>([]);
@@ -113,12 +177,86 @@ export default function AppointmentDetailPage() {
     }
   }, [selectedServiceId, doctors]);
 
-  // Trigger calendar refresh when appointment changes
+  // Initialize synchronized state with appointment data
   useEffect(() => {
     if (appointment) {
-      setCalendarRefreshKey((prev) => prev + 1);
+      dispatch({ type: 'SET_DOCTOR', payload: appointment.doctor });
+      dispatch({ type: 'SET_DATE', payload: appointment.appointment_date });
+      dispatch({ type: 'SET_TIME', payload: appointment.appointment_time });
+      dispatch({ type: 'SET_SERVICE', payload: typeof appointment.service === 'string' ? parseInt(appointment.service) : appointment.service });
     }
-  }, [appointment?.doctor, appointment?.appointment_date, appointment?.appointment_time]);
+  }, [appointment]);
+
+  // Handler for slot clicks from calendar - enhanced two-way sync
+  const handleSlotClick = useCallback((date: string, time: string) => {
+    // Update synchronized state first
+    dispatch({ type: 'SET_SLOT', payload: { date, time } });
+    
+    // Then update appointment state
+    setAppointment(prev => prev ? {
+      ...prev,
+      appointment_date: date,
+      appointment_time: time
+    } : null);
+    
+    // Clear any existing errors when user makes a selection
+    setError("");
+  }, []);
+
+  // Handler for form changes that should sync to calendar - enhanced with validation
+  const handleDoctorChange = useCallback((doctorId: number | null) => {
+    dispatch({ type: 'SET_DOCTOR', payload: doctorId });
+    setAppointment(prev => prev ? { ...prev, doctor: doctorId } : null);
+    
+    // Trigger calendar refresh to load new doctor's appointments
+    setCalendarRefreshKey((prev) => prev + 1);
+  }, []);
+
+  const handleDateChange = useCallback((date: string) => {
+    dispatch({ type: 'SET_DATE', payload: date });
+    setAppointment(prev => prev ? { ...prev, appointment_date: date } : null);
+    
+    // Clear any time conflicts when date changes
+    setError("");
+  }, []);
+
+  const handleTimeChange = useCallback((time: string) => {
+    dispatch({ type: 'SET_TIME', payload: time });
+    setAppointment(prev => prev ? { ...prev, appointment_time: time } : null);
+    
+    // Clear any time conflicts when time changes
+    setError("");
+  }, []);
+
+  // Subscribe to calendar sync events for real-time updates
+  useEffect(() => {
+    const unsubscribe = calendarSyncManager.subscribe((event) => {
+      switch (event.type) {
+        case 'appointment_created':
+        case 'appointment_updated':
+        case 'appointment_deleted':
+          // Refresh appointments when changes occur
+          setCalendarRefreshKey((prev) => prev + 1);
+          break;
+        case 'slot_selected':
+          // Handle slot selection from other calendar instances
+          if (event.data.date !== appointmentState.selectedDate || 
+              event.data.time !== appointmentState.selectedTime) {
+            // Use dispatch directly to avoid circular dependency
+            dispatch({ type: 'SET_SLOT', payload: { date: event.data.date, time: event.data.time } });
+            setAppointment(prev => prev ? {
+              ...prev,
+              appointment_date: event.data.date,
+              appointment_time: event.data.time
+            } : null);
+            setError("");
+          }
+          break;
+      }
+    });
+
+    return unsubscribe;
+  }, [appointmentState.selectedDate, appointmentState.selectedTime, dispatch]);
 
   useEffect(() => {
     if (id) {
@@ -173,6 +311,9 @@ export default function AppointmentDetailPage() {
       setAppointment(updated);
       setError("");
       alert("Appointment saved successfully!");
+      
+      // Emit sync event for real-time updates
+      calendarSyncManager.emitAppointmentUpdated(updated);
     } catch (err: any) {
       setError(err.message || "Failed to save appointment");
       console.error("Error saving appointment:", err);
@@ -222,6 +363,9 @@ export default function AppointmentDetailPage() {
 
       // Refresh history to show the new entry
       await fetchHistory();
+      
+      // Emit sync event for real-time updates
+      calendarSyncManager.emitAppointmentUpdated(updated);
 
       // ✅ Django deletes approved/rejected appointments - redirect to list
       // The appointment is now in history, not in active appointments
@@ -356,7 +500,7 @@ export default function AppointmentDetailPage() {
                   </label>
                   <input
                     type="email"
-                    value={appointment.email ?? ""}
+                    value={appointment.email || ""}
                     onChange={(e) => setAppointment({ ...appointment, email: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700"
                   />
@@ -403,7 +547,7 @@ export default function AppointmentDetailPage() {
                   </label>
                   <select
                     value={appointment.doctor ?? ""}
-                    onChange={(e) => setAppointment({ ...appointment, doctor: e.target.value ? Number(e.target.value) : null })}
+                    onChange={(e) => handleDoctorChange(e.target.value ? Number(e.target.value) : null)}
                     disabled={!appointment.service}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
@@ -428,9 +572,12 @@ export default function AppointmentDetailPage() {
                     {/* Calendar icon triggers the datepicker */}
                     <DatePicker
                       selected={appointment.appointment_date ? new Date(appointment.appointment_date) : null}
-                      onChange={(date: Date | null) =>
-                        setAppointment({ ...appointment, appointment_date: date?.toISOString().split('T')[0] })
-                      }
+                      onChange={(date: Date | null) => {
+                        const dateStr = date?.toISOString().split('T')[0];
+                        if (dateStr) {
+                          handleDateChange(dateStr);
+                        }
+                      }}
                       customInput={
                         <div className="flex items-center cursor-pointer px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 w-full">
                           <CalendarIcon className="h-7 w-7 text-gray-500 mr-2" />
@@ -455,7 +602,11 @@ export default function AppointmentDetailPage() {
                   <div className="flex items-center gap-2">
                     <ClockIcon className="h-7 w-7 text-gray-500" />
                     <TimePicker
-                      onChange={(time: string) => setAppointment({ ...appointment!, appointment_time: time })}
+                      onChange={(time: string | null) => {
+                        if (time) {
+                          handleTimeChange(time);
+                        }
+                      }}
                       value={appointment?.appointment_time ?? ""}
                       disableClock={true} // hides the analog clock, optional
                       clearIcon={null}     // hides clear button, optional
@@ -589,6 +740,39 @@ export default function AppointmentDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+                
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Doctor Schedule</h2>
+              {appointment && appointment.doctor && (
+                <div className="space-y-4">
+                  <div className="mb-4 text-sm text-gray-600">
+                    {appointment.doctor_details && (
+                      <p className="font-medium">Doctor: Dr. {appointment.doctor_details.name}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">Showing appointments for the selected doctor</p>
+                  </div>
+                  <div className="h-[600px] border border-gray-200 rounded-lg overflow-hidden">
+                    <EnhancedCalendarView
+                      doctorId={appointment.doctor as number}
+                      initialDate={appointment.appointment_date}
+                      view="day"
+                      className="h-full"
+                      selectedSlot={appointmentState.selectedDate && appointmentState.selectedTime ? {
+                        date: appointmentState.selectedDate,
+                        time: appointmentState.selectedTime
+                      } : undefined}
+                      onSlotClick={handleSlotClick}
+                      onStateChange={(state) => {
+                        // Update form when calendar state changes
+                        const dateStr = format(state.date, 'yyyy-MM-dd');
+                        handleDateChange(dateStr);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Actions */}
             {appointment.status === "PENDING" && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -613,30 +797,6 @@ export default function AppointmentDetailPage() {
                 </div>
               </div>
             )}
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Doctor Schedule</h2>
-              {appointment && appointment.doctor && (
-                <div className="space-y-4">
-                  <div className="mb-4 text-sm text-gray-600">
-                    {appointment.doctor_details && (
-                      <p className="font-medium">Doctor: Dr. {appointment.doctor_details.name}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">Showing appointments for the selected doctor</p>
-                  </div>
-                  <div className="h-[600px] border border-gray-200 rounded-lg overflow-hidden">
-                    <GoogleCalendarView
-                      key={calendarRefreshKey}
-                      doctorId={appointment.doctor as number}
-                      initialDate={appointment.appointment_date}
-                      view="week"
-                      compact={true}
-                      className="h-full"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
 
           </div>
         </div>

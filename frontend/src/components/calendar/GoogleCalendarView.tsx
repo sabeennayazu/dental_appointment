@@ -16,7 +16,7 @@ import {
 import { Doctor } from '@/lib/types';
 import { CalendarAppointment, getAppointments, getDoctors } from '@/lib/api/calendar';
 import { DoctorSelector } from './DoctorSelector';
-import { TimeSlotGrid } from './TimeSlotGrid';
+import { TimeSlotGrid, DayTimeGrid } from './TimeSlotGrid';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -31,12 +31,222 @@ import {
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
+// Date Selector Component for Day View
+interface DateSelectorProps {
+  selectedDate: Date;
+  onDateSelect: (date: Date) => void;
+}
+
+function DateSelector({ selectedDate, onDateSelect }: DateSelectorProps) {
+  // Generate dates for the next 7 days starting from today
+  const dates = useMemo(() => {
+    const result = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(today, i);
+      result.push({
+        date,
+        dayName: format(date, 'EEE'),
+        dayNumber: format(date, 'd'),
+        fullDate: format(date, 'yyyy-MM-dd'),
+        isToday: isSameDay(date, today),
+        isSelected: isSameDay(date, selectedDate),
+      });
+    }
+    return result;
+  }, [selectedDate]);
+
+  return (
+    <div className="flex items-center space-x-1 px-6 py-3 border-b border-gray-200 bg-gray-50">
+      {dates.map((dateInfo) => (
+        <button
+          key={dateInfo.fullDate}
+          onClick={() => onDateSelect(dateInfo.date)}
+          className={cn(
+            'flex flex-col items-center justify-center min-w-[60px] py-2 px-1 rounded-lg transition-colors text-sm font-medium',
+            dateInfo.isSelected
+              ? 'bg-blue-600 text-white shadow-sm'
+              : dateInfo.isToday
+              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              : 'text-gray-700 hover:bg-gray-200'
+          )}
+        >
+          <span className="text-xs font-normal mb-1">{dateInfo.dayName}</span>
+          <span className="text-lg">{dateInfo.dayNumber}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Day View Calendar Component
+interface DayCalendarViewProps {
+  doctorId?: number;
+  initialDate?: string;
+  className?: string;
+  compact?: boolean;
+  selectedTime?: string;
+  selectedDateProp?: string; // Rename to avoid conflict with local state
+  onTimeClick?: (time: string) => void;
+  onDateSelect?: (date: Date) => void;
+  onSlotClick?: (date: string, time: string) => void;
+  refreshKey?: number;
+}
+
+export function DayCalendarView({
+  doctorId: initialDoctorId,
+  initialDate,
+  className,
+  compact = false,
+  selectedTime,
+  selectedDateProp,
+  onTimeClick,
+  onDateSelect,
+  onSlotClick,
+  refreshKey,
+}: DayCalendarViewProps) {
+  const [selectedDate, setSelectedDate] = useState<Date>(() =>
+    initialDate ? parseISO(initialDate) : new Date()
+  );
+  
+  // Sync local state with prop changes
+  useEffect(() => {
+    if (selectedDateProp && selectedDateProp !== format(selectedDate, 'yyyy-MM-dd')) {
+      setSelectedDate(parseISO(selectedDateProp));
+    }
+  }, [selectedDateProp, selectedDate]);
+  
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [appointments, setAppointments] = useState<CalendarAppointment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch doctors
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      const doctors = await getDoctors();
+      if (initialDoctorId) {
+        const doctor = doctors.find((d: Doctor) => d.id === initialDoctorId);
+        if (doctor) {
+          setSelectedDoctor(doctor);
+        }
+      } else if (doctors.length > 0) {
+        setSelectedDoctor(doctors[0]);
+      }
+    };
+    fetchDoctors();
+  }, [initialDoctorId]);
+
+  // Fetch appointments for the selected date - enhanced with refresh key support
+  useEffect(() => {
+    if (!selectedDoctor) return;
+
+    const fetchAppointments = async () => {
+      setLoading(true);
+      try {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+
+        const data = await getAppointments({
+          doctor_id: selectedDoctor.id,
+          start_date: dateStr || '',
+          end_date: dateStr || '',
+        });
+
+        setAppointments(data);
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAppointments();
+  }, [selectedDoctor, selectedDate, refreshKey]); // Add refreshKey dependency
+
+  const handleDateSelect = (date: Date) => {
+    if (date) {
+      setSelectedDate(date);
+      if (onDateSelect) {
+        onDateSelect(date);
+      }
+    }
+  };
+
+  const handleTimeClick = (time: string) => {
+    // Create date string for the selected date
+    const dateStr = format(selectedDate, 'yyyy-MM-dd') || '';
+    
+    // Call slot click handler if provided
+    if (onSlotClick) {
+      onSlotClick(dateStr, time);
+    }
+    
+    // Also call time click handler for backward compatibility
+    if (onTimeClick) {
+      onTimeClick(time);
+    }
+  };
+
+  return (
+    <div className={cn('flex flex-col h-full bg-white', className)}>
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="border-b border-gray-200 px-6 py-4"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-xl font-medium text-gray-900">
+              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+            </h1>
+          </div>
+        </div>
+
+        {/* Doctor Selector */}
+        <div className="flex items-center space-x-3 mt-4">
+          <DoctorSelector
+            selectedDoctor={selectedDoctor}
+            onSelect={setSelectedDoctor}
+          />
+        </div>
+      </motion.div>
+
+      {/* Date Selector */}
+      <DateSelector
+        selectedDate={selectedDate}
+        onDateSelect={handleDateSelect}
+      />
+
+      {/* Day Time Grid */}
+      {!loading && selectedDoctor ? (
+        <DayTimeGrid
+          selectedDate={selectedDate}
+          appointments={appointments}
+          selectedTime={selectedTime}
+          onTimeClick={handleTimeClick}
+          slotDuration={60}
+        />
+      ) : (
+        <div className="flex-1 flex items-center justify-center">
+          {loading ? (
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          ) : (
+            <p className="text-gray-500">Please select a doctor to view appointments</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface GoogleCalendarViewProps {
   doctorId?: number;
   initialDate?: string;
   view?: 'day' | 'week' | 'month';
   className?: string;
   compact?: boolean;
+  selectedSlot?: { date: string; time: string };
+  onSlotClick?: (date: string, time: string) => void;
   onStateChange?: (state: {
     doctorId?: number;
     date: Date;
@@ -50,6 +260,8 @@ export function GoogleCalendarView({
   view: initialView = 'week',
   className,
   compact = false,
+  selectedSlot,
+  onSlotClick,
   onStateChange,
 }: GoogleCalendarViewProps) {
   const router = useRouter();
@@ -243,12 +455,22 @@ export function GoogleCalendarView({
 
       {/* Week View */}
       {!loading && selectedDoctor ? (
-        <TimeSlotGrid
-          weekDays={weekDays}
-          appointments={appointments}
-          selectedDate={selectedDate}
-          compact={compact}
-        />
+        <>
+          <TimeSlotGrid
+            weekDays={weekDays}
+            appointments={appointments}
+            selectedDate={selectedDate}
+            compact={compact}
+            selectedSlot={selectedSlot}
+            onSlotClick={onSlotClick}
+          />
+          {/* Debug info - remove in production */}
+          {selectedSlot && (
+            <div className="text-xs text-gray-500 p-2 border-t">
+              Selected: {selectedSlot.date} at {selectedSlot.time} | Column: {selectedDate.toDateString()}
+            </div>
+          )}
+        </>
       ) : (
         <div className="flex-1 flex items-center justify-center">
           {loading ? (

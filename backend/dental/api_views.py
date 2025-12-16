@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from .models import Appointment, AppointmentHistory, Doctor, Feedback, Service
-from .serializers import AppointmentSerializer, AppointmentHistorySerializer, DoctorSerializer, FeedbackSerializer, ServiceSerializer, UserSerializer
+from .serializers import AppointmentSerializer, AppointmentHistorySerializer, DoctorSerializer, FeedbackSerializer, ServiceSerializer, UserSerializer, CalendarAppointmentSerializer
 from django.contrib.auth import get_user_model
 import re
 
@@ -152,6 +152,37 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             # Always return JSON on unexpected failures
             return Response({'error': str(exc)}, status=500)
 
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        """Return appointments formatted for calendar view."""
+        try:
+            start_date = request.query_params.get('start_date')
+            end_date = request.query_params.get('end_date')
+            doctor_id = request.query_params.get('doctor_id')
+
+            if not start_date or not end_date:
+                return Response(
+                    {'error': 'start_date and end_date are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Filter appointments by date range
+            appointments = Appointment.objects.filter(
+                appointment_date__gte=start_date,
+                appointment_date__lte=end_date
+            )
+
+            # Filter by doctor if specified
+            if doctor_id:
+                appointments = appointments.filter(doctor_id=doctor_id)
+
+            # Use calendar serializer
+            serializer = CalendarAppointmentSerializer(appointments, many=True)
+            return Response(serializer.data)
+
+        except Exception as exc:
+            return Response({'error': str(exc)}, status=500)
+
 
 class AppointmentHistoryViewSet(viewsets.ModelViewSet):
     queryset = AppointmentHistory.objects.all().order_by('-timestamp')
@@ -274,4 +305,3 @@ class UserViewSet(viewsets.ModelViewSet):
         
         instance.save()
         return Response(UserSerializer(instance).data)
-  

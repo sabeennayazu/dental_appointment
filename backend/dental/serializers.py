@@ -51,14 +51,63 @@ class FeedbackSerializer(serializers.ModelSerializer):
         
 
 
+class CalendarAppointmentSerializer(serializers.ModelSerializer):
+    service = ServiceSerializer(read_only=True)
+    doctor = DoctorSerializer(read_only=True)
+    patient = serializers.SerializerMethodField()
+    patient_name = serializers.CharField(source='name', read_only=True)
+    service_name = serializers.CharField(source='service.name', read_only=True)
+    service_duration = serializers.SerializerMethodField()
+    start_time = serializers.SerializerMethodField()
+    end_time = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Appointment
+        fields = [
+            'id', 'patient', 'patient_name', 'service', 'service_name', 'service_duration',
+            'doctor', 'start_time', 'end_time', 'message', 'status', 'admin_notes',
+            'created_at'
+        ]
+
+    def get_patient(self, obj):
+        return {
+            'id': obj.id,
+            'name': obj.name or '',
+            'phone': obj.phone or '',
+            'email': obj.email or ''
+        }
+
+    def get_service_duration(self, obj):
+        # Default to 60 minutes if no duration specified in service
+        # You can add a duration field to Service model later if needed
+        return 60
+
+    def get_start_time(self, obj):
+        if obj.appointment_date and obj.appointment_time:
+            from datetime import datetime
+            dt = datetime.combine(obj.appointment_date, obj.appointment_time)
+            return dt.isoformat()
+        return None
+
+    def get_end_time(self, obj):
+        if obj.appointment_date and obj.appointment_time:
+            from datetime import datetime, timedelta
+            dt = datetime.combine(obj.appointment_date, obj.appointment_time)
+            # Add service duration (default 60 minutes)
+            duration = self.get_service_duration(obj)
+            dt = dt + timedelta(minutes=duration)
+            return dt.isoformat()
+        return None
+
+
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
-    
+
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'is_staff', 'is_superuser', 'is_active', 
+            'is_staff', 'is_superuser', 'is_active',
             'date_joined', 'last_login', 'password'
         ]
         read_only_fields = ['date_joined', 'last_login']
