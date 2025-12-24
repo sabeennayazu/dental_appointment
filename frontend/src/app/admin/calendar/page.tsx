@@ -1,13 +1,13 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { EnhancedCalendarView } from '@/components/calendar/EnhancedCalendarView';
+import { FullWidthCalendar } from '@/components/calendar/FullWidthCalendar';
 import AdminLayout from "@/components/admin/AdminLayout";
-import { useState, useCallback } from 'react';
+import { useState, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 
-export default function CalendarPage() {
+function CalendarContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const doctorId = searchParams.get('doctor') ? parseInt(searchParams.get('doctor') as string) : undefined;
@@ -37,33 +37,46 @@ export default function CalendarPage() {
   // Handle calendar state changes
   const handleStateChange = useCallback((state: {
     doctorId?: number;
+    serviceId?: number;
     date: Date;
-    view: 'day' | 'week';
   }) => {
     // Update URL parameters
     const params = new URLSearchParams(searchParams.toString());
     if (state.doctorId) {
       params.set('doctor', state.doctorId.toString());
     }
+    if (state.serviceId) {
+      params.set('service', state.serviceId.toString());
+    }
     params.set('date', format(state.date, 'yyyy-MM-dd'));
-    params.set('view', state.view);
     
     router.push(`/admin/calendar?${params.toString()}`, { scroll: false });
   }, [router, searchParams]);
 
   return (
+    <div className="flex flex-col h-full bg-white">
+      <FullWidthCalendar
+        doctorId={doctorId}
+        initialDate={date}
+        className="h-full"
+        selectedSlot={selectedSlot || undefined}
+        onSlotClick={handleSlotClick}
+        onStateChange={handleStateChange}
+      />
+    </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
     <AdminLayout>
-      <div className="flex flex-col h-full bg-white">
-        <EnhancedCalendarView
-          doctorId={doctorId}
-          initialDate={date}
-          view={view}
-          className="h-full"
-          selectedSlot={selectedSlot || undefined}
-          onSlotClick={handleSlotClick}
-          onStateChange={handleStateChange}
-        />
-      </div>
+      <Suspense fallback={
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      }>
+        <CalendarContent />
+      </Suspense>
     </AdminLayout>
   );
 }

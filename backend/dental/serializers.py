@@ -30,7 +30,7 @@ class AppointmentHistorySerializer(serializers.ModelSerializer):
             'id', 'appointment', 'name', 'email', 'phone', 'service_name',
             'appointment_date', 'appointment_time', 'message', 'doctor_id',
             'doctor_name', 'previous_status', 'new_status', 'changed_by',
-            'notes', 'timestamp', 'visited'
+            'notes', 'timestamp', 'visited', 'service_id'
         ]
         read_only_fields = ['timestamp']
 

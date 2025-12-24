@@ -555,10 +555,7 @@ export function EnhancedCalendarView({
             onServiceSelect={handleServiceChange}
             onDoctorSelect={handleDoctorChange}
           />
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <Clock className="h-4 w-4" />
-            <span>{hoveredSlot ? `${hoveredSlot.date} at ${hoveredSlot.time}` : 'Select service and doctor to view appointments'}</span>
-          </div>
+          
         </div>
       </motion.div>
 

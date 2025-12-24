@@ -39,24 +39,43 @@ export const calendarApi = {
         ...(filters.doctorId && { doctor_id: filters.doctorId.toString() }),
       });
 
-      const response = await apiClient.get<ApiResponse<CalendarAppointment[]>>(
+      const response = await apiClient.get<any>(
         `/api/appointments/calendar?${params.toString()}`
       );
       
-      if (response && typeof response === 'object' && 'data' in response) {
-        return Array.isArray(response.data) ? response.data : [];
+      // Handle multiple response formats
+      if (response && typeof response === 'object') {
+        if ('data' in response && Array.isArray(response.data)) {
+          return response.data;
+        }
+        if ('results' in response && Array.isArray(response.results)) {
+          return response.results;
+        }
+        if (Array.isArray(response)) {
+          return response;
+        }
       }
       return [];
     } catch (error) {
       console.error('Failed to fetch appointments:', error);
-      throw error;
+      return [];
     }
   },
 
   async getDoctors(): Promise<Doctor[]> {
     try {
-      const response = await apiClient.get<Doctor[]>('/api/doctors/');
-      return Array.isArray(response) ? response : [];
+      const response = await apiClient.get<any>('/api/doctors/');
+      
+      // Handle multiple response formats
+      if (response && typeof response === 'object') {
+        if ('results' in response && Array.isArray(response.results)) {
+          return response.results;
+        }
+        if (Array.isArray(response)) {
+          return response;
+        }
+      }
+      return [];
     } catch (error) {
       console.error('Failed to fetch doctors:', error);
       return [];

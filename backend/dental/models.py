@@ -52,6 +52,7 @@ class AppointmentHistory(models.Model):
 	name = models.CharField(max_length=255, blank=True, null=True)
 	email = models.EmailField(blank=True, null=True)
 	phone = models.CharField(max_length=50, blank=True, null=True)
+	service_id = models.IntegerField(blank=True, null=True)  # ✅ Added for calendar filtering
 	service_name = models.CharField(max_length=255, blank=True, null=True)  # snapshot of service name
 	appointment_date = models.DateField(blank=True, null=True)
 	appointment_time = models.TimeField(blank=True, null=True)

@@ -16,14 +16,20 @@ export const historyApi = {
         ...(filters.doctor_id && { doctor_id: filters.doctor_id.toString() }),
       });
 
-      const response = await apiClient.get<AppointmentHistory[]>(
+      const response = await apiClient.get<any>(
         `/api/history/?${params.toString()}`
       );
       
-      if (response && typeof response === 'object' && 'results' in response) {
-        return Array.isArray(response.results) ? response.results : [];
+      // Handle different response formats from the backend
+      if (response && typeof response === 'object') {
+        if ('results' in response && Array.isArray(response.results)) {
+          return response.results;
+        }
+        if (Array.isArray(response)) {
+          return response;
+        }
       }
-      return Array.isArray(response) ? response : [];
+      return [];
     } catch (error) {
       console.error('Failed to fetch history:', error);
       return [];

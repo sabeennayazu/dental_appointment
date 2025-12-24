@@ -31,6 +31,7 @@ export interface AppointmentHistory {
   name: string;
   email: string;
   phone: string;
+  service_id: number;
   service_name: string;
   appointment_date: string;
   appointment_time: string;

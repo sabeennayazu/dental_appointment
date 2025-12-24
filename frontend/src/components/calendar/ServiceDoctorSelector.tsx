@@ -129,7 +129,7 @@ export function ServiceDoctorSelector({
       type="button"
       onClick={() => handleServiceSelect(service)}
       className={cn(
-        "w-full px-3 py-2 text-left text-sm hover:bg-muted rounded",
+        "w-full px-3 py-2 text-left bg-white text-sm hover:bg-gray-300 rounded",
         selectedService?.id === service.id && "bg-muted"
       )}
     >
@@ -165,7 +165,7 @@ export function ServiceDoctorSelector({
       type="button"
       onClick={() => handleDoctorSelect(doctor)}
       className={cn(
-        "w-full px-3 py-2 text-left text-sm hover:bg-muted rounded",
+        "w-full px-3 py-2 text-left text-sm bg-white hover:bg-gray-300 rounded",
         selectedService?.id === doctor.id && "bg-muted"
       )}
     >
@@ -173,7 +173,6 @@ export function ServiceDoctorSelector({
     </button>
   ))}
 </PopoverContent>
-
       </Popover>
     </div>
   );
