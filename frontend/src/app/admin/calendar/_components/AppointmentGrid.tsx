@@ -53,25 +53,27 @@ export function AppointmentGrid({ days, appointments, isLoading }: AppointmentGr
                 key={dayIndex} 
                 className={`flex-1 border-r border-gray-100 relative ${hasTooManyAppointments ? 'bg-red-50' : ''}`}
               >
-                <div className="absolute inset-0 overflow-y-auto p-1">
-                  {hasTooManyAppointments && (
-                    <div className="text-xs text-red-500 font-medium bg-red-100 p-1 rounded mb-1">
-                      ⚠️ Too many appointments
-                    </div>
-                  )}
-                  
-                  {dayAppointments.slice(0, 4).map((appointment) => (
-                    <AppointmentCard 
-                      key={appointment.id} 
-                      appointment={appointment} 
-                    />
-                  ))}
-                  
-                  {dayAppointments.length > 4 && (
-                    <div className="text-xs text-gray-500 text-center">
-                      +{dayAppointments.length - 4} more
-                    </div>
-                  )}
+                <div className="absolute inset-0 overflow-x-auto p-1">
+                  <div className="flex flex-row gap-1 h-full">
+                    {hasTooManyAppointments && (
+                      <div className="text-xs text-red-500 font-medium bg-red-100 p-1 rounded flex-shrink-0">
+                        ⚠️ Too many
+                      </div>
+                    )}
+                    
+                    {dayAppointments.slice(0, 4).map((appointment) => (
+                      <AppointmentCard 
+                        key={appointment.id} 
+                        appointment={appointment} 
+                      />
+                    ))}
+                    
+                    {dayAppointments.length > 4 && (
+                      <div className="text-xs text-gray-500 bg-gray-100 p-1 rounded flex items-center flex-shrink-0">
+                        +{dayAppointments.length - 4}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -99,11 +101,11 @@ function AppointmentCard({ appointment }: AppointmentCardProps) {
   
   return (
     <div 
-      className={`mb-1 p-1 rounded border ${statusColor} text-xs cursor-pointer hover:shadow-sm`}
+      className={`px-2 py-1 rounded border ${statusColor} text-xs cursor-pointer hover:shadow-sm flex-shrink-0 whitespace-nowrap`}
       title={`${appointment.patient.name} - ${appointment.service_name}`}
     >
-      <div className="font-medium truncate">{appointment.patient.name}</div>
-      <div className="text-gray-600 truncate">{appointment.service_name}</div>
+      <div className="font-medium">{appointment.patient.name}</div>
+      <div className="text-gray-600">{appointment.service_name}</div>
       <div className="text-gray-500 text-[10px] mt-0.5">
         {format(parseISO(appointment.start_time), 'h:mm a')}
       </div>

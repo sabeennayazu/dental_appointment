@@ -10,14 +10,18 @@ export interface HistoryFilters {
 export const historyApi = {
   async getHistory(filters: HistoryFilters): Promise<AppointmentHistory[]> {
     try {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         start_date: filters.start_date,
         end_date: filters.end_date,
-        ...(filters.doctor_id && { doctor_id: filters.doctor_id.toString() }),
-      });
+      };
+      
+      if (filters.doctor_id) {
+        params.doctor_id = filters.doctor_id.toString();
+      }
 
       const response = await apiClient.get<any>(
-        `/api/history/?${params.toString()}`
+        '/api/history/',
+        params
       );
       
       // Handle different response formats from the backend

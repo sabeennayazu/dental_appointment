@@ -33,14 +33,18 @@ export interface ApiResponse<T> {
 export const calendarApi = {
   async getAppointments(filters: CalendarFilters): Promise<CalendarAppointment[]> {
     try {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         start_date: filters.startDate,
         end_date: filters.endDate,
-        ...(filters.doctorId && { doctor_id: filters.doctorId.toString() }),
-      });
+      };
+      
+      if (filters.doctorId) {
+        params.doctor_id = filters.doctorId.toString();
+      }
 
       const response = await apiClient.get<any>(
-        `/api/appointments/calendar?${params.toString()}`
+        '/api/appointments/calendar',
+        params
       );
       
       // Handle multiple response formats

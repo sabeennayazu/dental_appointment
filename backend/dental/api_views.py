@@ -189,8 +189,10 @@ class AppointmentHistoryViewSet(viewsets.ModelViewSet):
     serializer_class = AppointmentHistorySerializer
 
     def get_queryset(self):
-        """Filter history by phone number if provided."""
+        """Filter history by phone number, date range, and doctor_id if provided."""
         qs = super().get_queryset()
+        
+        # Filter by phone number if provided
         phone = self.request.query_params.get('phone', None)
         if phone:
             import re
@@ -199,6 +201,23 @@ class AppointmentHistoryViewSet(viewsets.ModelViewSet):
             if query_digits:
                 # Filter records where phone contains the search digits
                 qs = qs.filter(phone__icontains=query_digits)
+        
+        # Filter by date range if provided
+        start_date = self.request.query_params.get('start_date', None)
+        end_date = self.request.query_params.get('end_date', None)
+        if start_date:
+            qs = qs.filter(appointment_date__gte=start_date)
+        if end_date:
+            qs = qs.filter(appointment_date__lte=end_date)
+        
+        # Filter by doctor_id if provided
+        doctor_id = self.request.query_params.get('doctor_id', None)
+        if doctor_id:
+            try:
+                qs = qs.filter(doctor_id=int(doctor_id))
+            except (ValueError, TypeError):
+                pass  # Ignore invalid doctor_id values
+        
         return qs
 
     @action(detail=True, methods=['post'])
