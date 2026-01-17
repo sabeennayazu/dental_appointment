@@ -33,10 +33,11 @@ import {
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
-// 24-hour time slots
-const HOURS_PER_DAY = 24;
-const TIME_SLOTS = Array.from({ length: HOURS_PER_DAY }, (_, i) => {
-  const hour = i; // 0 to 23
+// Time slots: 8 AM to 7 PM (fixed range)
+const START_HOUR = 8; // 8 AM
+const END_HOUR = 19;  // 7 PM (19:00)
+const TIME_SLOTS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
+  const hour = START_HOUR + i;
   return {
     hour,
     label:
@@ -338,7 +339,7 @@ export function FullWidthCalendar({
     }
   }, [selectedDoctor, selectedService, selectedDate, router, onStateChange, searchParams]);
 
-  // Combine appointments and history for selected date only
+  // Combine appointments and history for selected date only - filter out rejected appointments globally
   const combinedAppointments = useMemo(() => {
     const historyAsAppointments = history.map(convertHistoryToCalendarAppointment);
     const allAppointments = [...appointments, ...historyAsAppointments]
@@ -350,6 +351,11 @@ export function FullWidthCalendar({
           console.warn('Invalid start_time for appointment:', apt.id, apt.start_time);
           return false;
         }
+      })
+      // Filter out rejected appointments globally
+      .filter(apt => {
+        const status = apt.status?.toUpperCase();
+        return status !== 'REJECTED';
       });
     return allAppointments;
   }, [appointments, history, selectedDate]);
@@ -363,7 +369,7 @@ export function FullWidthCalendar({
     return map;
   }, [history]);
 
-  // Group appointments by hour and calculate positions (max 3 per hour)
+  // Group appointments by hour and calculate positions (max 3 per hour) - Horizontal Alignment
   const positionedAppointments = useMemo(() => {
     // Group appointments by hour
     const appointmentsByHour = new Map<number, typeof combinedAppointments>();
@@ -387,24 +393,28 @@ export function FullWidthCalendar({
       width: number;
       timeDisplay: string;
       isVisited: boolean;
+      position: number; // 0, 1, or 2 for horizontal alignment
+      totalInSlot: number;
     }> = [];
 
     appointmentsByHour.forEach((hourAppointments, hour) => {
       // Limit to 3 appointments per hour
       const limitedAppointments = hourAppointments.slice(0, 3);
+      const totalInSlot = limitedAppointments.length;
       
       limitedAppointments.forEach((appointment, index) => {
         const startTime = parseISO(appointment.start_time);
         const endTime = parseISO(appointment.end_time);
 
-        // Appointments are constrained to the hour cell
-        // Calculate height - each appointment gets equal portion of the hour cell
-        const appointmentsCount = limitedAppointments.length;
-        const cellHeight = HOUR_HEIGHT / appointmentsCount;
-        const height = cellHeight - 1; // Small gap between appointments
+        // Horizontal alignment: each appointment occupies 1/3 width when 2-3 appointments
+        // Full width when only 1 appointment
+        const appointmentWidth = totalInSlot === 1 ? 100 : 33.33;
+        const leftPosition = totalInSlot === 1 ? 0 : index * 33.33;
 
-        // Top position within the hour cell - stacked vertically
-        const top = (hour * HOUR_HEIGHT) + (index * cellHeight);
+        // Top position: calculate slot index based on hour (8 AM = 0, 9 AM = 1, etc.)
+        const slotIndex = TIME_SLOTS.findIndex(slot => slot.hour === hour);
+        const top = slotIndex >= 0 ? slotIndex * HOUR_HEIGHT : 0;
+        const height = HOUR_HEIGHT - 2; // Small margin from edges
 
         // Format time display
         const timeDisplay = `${format(startTime, 'h:mm a')} - ${format(endTime, 'h:mm a')}`;
@@ -416,10 +426,12 @@ export function FullWidthCalendar({
           appointment,
           top,
           height,
-          left: 0, // Full width within cell
-          width: 100, // Full width within cell
+          left: leftPosition,
+          width: appointmentWidth,
           timeDisplay,
           isVisited: isVisited(appointment, originalHistory),
+          position: index,
+          totalInSlot,
         });
       });
     });
@@ -626,7 +638,7 @@ export function FullWidthCalendar({
       {/* Single-Day Calendar Grid */}
       {!loading ? (
         <div className="flex-1 overflow-auto">
-          <div className="flex" style={{ minHeight: `${HOURS_PER_DAY * HOUR_HEIGHT}px` }}>
+          <div className="flex" style={{ minHeight: `${TIME_SLOTS.length * HOUR_HEIGHT}px` }}>
             {/* Time Column */}
             <div className="w-24 flex-shrink-0 border-r border-gray-200 bg-gray-50 sticky left-0 z-10">
               {TIME_SLOTS.map((slot) => (
@@ -643,15 +655,15 @@ export function FullWidthCalendar({
             </div>
 
             {/* Single Date Column with Appointments */}
-            <div className="flex-1 relative bg-white" style={{ minHeight: `${HOURS_PER_DAY * HOUR_HEIGHT}px` }}>
+            <div className="flex-1 relative bg-white" style={{ minHeight: `${TIME_SLOTS.length * HOUR_HEIGHT}px` }}>
               {/* Grid Lines - Horizontal and Vertical */}
               <div className="absolute inset-0">
-                {TIME_SLOTS.map((slot) => (
+                {TIME_SLOTS.map((slot, slotIndex) => (
                   <div
                     key={slot.hour}
                     className="absolute left-0 right-0 border-b border-gray-300 cursor-pointer hover:bg-blue-50 transition-colors"
                     style={{
-                      top: `${slot.hour * HOUR_HEIGHT}px`,
+                      top: `${slotIndex * HOUR_HEIGHT}px`,
                       height: `${HOUR_HEIGHT}px`,
                     }}
                     onClick={() => handleTimeSlotClick(slot.hour)}
@@ -662,41 +674,71 @@ export function FullWidthCalendar({
                 <div className="absolute right-0 top-0 bottom-0 w-px bg-gray-300" />
               </div>
 
-              {/* Appointments - Grid-Constrained Positioning */}
-              {positionedAppointments.map(({ appointment, top, height, timeDisplay, isVisited }) => {
-                const isHovered = hoveredAppointment === appointment.id;
-                const colorClass = getAppointmentColor(isVisited);
+              {/* Appointments - Horizontal Alignment (Side-by-Side) */}
+              {TIME_SLOTS.map((slot, slotIndex) => {
+                const hour = slot.hour;
+                const slotAppointments = positionedAppointments.filter(
+                  (pos) => {
+                    const aptHour = getHours(parseISO(pos.appointment.start_time));
+                    return aptHour === hour;
+                  }
+                );
+
+                if (slotAppointments.length === 0) return null;
+
+                // Calculate top position based on slot index (not hour) to account for 8 AM start
+                const topPosition = slotIndex * HOUR_HEIGHT;
 
                 return (
                   <div
-                    key={appointment.id}
-                    className={cn(
-                      'absolute rounded border shadow-sm cursor-pointer transition-all',
-                      'hover:shadow-md hover:z-20',
-                      colorClass,
-                      'text-white',
-                      isHovered && 'z-20 shadow-lg'
-                    )}
+                    key={`slot-${hour}`}
+                    className="absolute flex gap-1"
                     style={{
-                      top: `${top}px`,
-                      left: '2px', // Small margin from left edge
-                      right: '2px', // Small margin from right edge
-                      height: `${height}px`,
-                      zIndex: isHovered ? 20 : 10,
+                      top: `${topPosition + 2}px`,
+                      left: '4px',
+                      right: '4px',
+                      height: `${HOUR_HEIGHT - 4}px`,
                     }}
-                    onMouseEnter={() => setHoveredAppointment(appointment.id)}
-                    onMouseLeave={() => setHoveredAppointment(null)}
-                    onClick={(e) => handleAppointmentClick(appointment, e)}
                   >
-                    <div className="p-1.5 h-full flex flex-col justify-between overflow-hidden">
-                      <div className="font-medium text-xs truncate leading-tight">
-                        {appointment.patient_name}
-                      </div>
-                      <div className="text-[10px] opacity-90 flex items-center gap-0.5">
-                        <Clock className="h-2.5 w-2.5" />
-                        {timeDisplay}
-                      </div>
-                    </div>
+                    {slotAppointments.map(({ appointment, width, timeDisplay, isVisited, position }) => {
+                      const isHovered = hoveredAppointment === appointment.id;
+                      const colorClass = getAppointmentColor(isVisited);
+
+                      return (
+                        <div
+                          key={appointment.id}
+                          className={cn(
+                            'rounded border shadow-sm cursor-pointer transition-all flex-shrink-0',
+                            'hover:shadow-md hover:z-20',
+                            colorClass,
+                            'text-white',
+                            isHovered && 'z-20 shadow-lg'
+                          )}
+                          style={{
+                            width: `${width}%`,
+                            height: '100%',
+                            zIndex: isHovered ? 20 : 10,
+                          }}
+                          onMouseEnter={() => setHoveredAppointment(appointment.id)}
+                          onMouseLeave={() => setHoveredAppointment(null)}
+                          onClick={(e) => handleAppointmentClick(appointment, e)}
+                        >
+                          <div className="p-2 h-full flex flex-col justify-between overflow-hidden">
+                            <div className="font-medium text-xs truncate">
+                              {appointment.patient_name}
+                            </div>
+                            <div className="truncate text-xs opacity-80">
+                              {timeDisplay}
+                            </div>
+                            {appointment.status && (
+                              <div className="truncate text-xs capitalize font-medium mt-1">
+                                {appointment.status === 'COMPLETED' || isVisited ? 'Visited' : 'Unvisited'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -707,7 +749,11 @@ export function FullWidthCalendar({
                   <div
                     className="absolute left-0 right-0 bg-blue-100 border-2 border-blue-500 rounded pointer-events-none"
                     style={{
-                      top: `${parseInt(selectedSlot.time.split(':')[0]) * HOUR_HEIGHT}px`,
+                      top: `${(() => {
+                        const selectedHour = parseInt(selectedSlot.time.split(':')[0]);
+                        const slotIndex = TIME_SLOTS.findIndex(slot => slot.hour === selectedHour);
+                        return slotIndex >= 0 ? slotIndex * HOUR_HEIGHT : 0;
+                      })()}px`,
                       height: `${HOUR_HEIGHT}px`,
                     }}
                   />

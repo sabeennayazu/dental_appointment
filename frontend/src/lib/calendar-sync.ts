@@ -9,8 +9,8 @@ import { Doctor, Appointment } from '@/lib/types';
 
 // Enhanced time slot configuration
 export const TIME_SLOT_CONFIG = {
-  START_HOUR: 6, // 6 AM
-  END_HOUR: 22,  // 10 PM
+  START_HOUR: 8, // 8 AM
+  END_HOUR: 19,  // 7 PM (19:00)
   SLOT_DURATION: 60, // minutes
   MAX_APPOINTMENTS_PER_SLOT: 3
 } as const;

@@ -24,70 +24,153 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         data['status'] = 'PENDING'
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
+        
+        # Validate max 3 appointments per hour before creating
+        validated_data = serializer.validated_data
+        doctor_id = validated_data.get('doctor')
+        appointment_date = validated_data.get('appointment_date')
+        appointment_time = validated_data.get('appointment_time')
+        
+        if doctor_id and appointment_date and appointment_time:
+            # Extract hour from appointment_time (format: HH:MM)
+            hour = int(appointment_time.split(':')[0]) if ':' in str(appointment_time) else 0
+            
+            # Count existing appointments for this doctor, date, and hour
+            from django.db.models import Q
+            from datetime import timedelta
+            
+            # Count active appointments in the same hour
+            existing_count = Appointment.objects.filter(
+                doctor_id=doctor_id,
+                appointment_date=appointment_date,
+                appointment_time__startswith=f"{hour:02d}:"
+            ).count()
+            
+            if existing_count >= 3:
+                return Response(
+                    {'error': 'Maximum capacity reached. You cannot add more than 3 appointments in this hour.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def update(self, request, *args, **kwargs):
-        # Allow editing of appointment details
-        partial = kwargs.pop('partial', False)
+        """Handle PATCH and PUT requests for partial or full updates"""
+        # Force partial=True for PATCH requests to allow partial updates
+        partial = request.method == 'PATCH'
+        kwargs['partial'] = partial
+        
         instance = self.get_object()
         
         # Store old status before any changes
         old_status = instance.status
         new_status = request.data.get('status', old_status)
         
-        # Process all allowed fields
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        
-        # ✅ UPDATE THE APPOINTMENT FIRST with all changes
-        self.perform_update(serializer)
-        
-        # ✅ Create history entry if status is changing
-        if old_status != new_status:
-            # Get the updated instance to capture new data
-            instance.refresh_from_db()
-            doc = instance.doctor
+        try:
+            # Process all allowed fields with partial=True for PATCH
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
             
-            # Create history entry with UPDATED data (after changes)
-            history_entry = AppointmentHistory.objects.create(
-                appointment=instance,
-                name=instance.name,
-                email=instance.email,
-                phone=instance.phone,
-                service_name=instance.service.name if instance.service else None,
-                appointment_date=instance.appointment_date,
-                appointment_time=instance.appointment_time,
-                message=instance.message,
-                doctor_id=getattr(doc, 'id', None),
-                doctor_name=getattr(doc, 'name', None),
-                previous_status=old_status,
-                new_status=new_status,
-                changed_by=str(request.user) if request.user.is_authenticated else 'api',
-                notes=instance.admin_notes or ''
+            if not serializer.is_valid():
+                return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate max 3 appointments per hour if date/time/doctor is being changed
+            validated_data = serializer.validated_data
+            doctor_id = validated_data.get('doctor', instance.doctor_id)
+            appointment_date = validated_data.get('appointment_date', instance.appointment_date)
+            appointment_time = validated_data.get('appointment_time', instance.appointment_time)
+            
+            # Check if any relevant field is changing
+            if doctor_id and appointment_date and appointment_time:
+                # Extract hour from appointment_time (format: HH:MM)
+                hour = int(str(appointment_time).split(':')[0]) if appointment_time else 0
+                
+                # Count existing appointments for this doctor, date, and hour (excluding current appointment)
+                existing_count = Appointment.objects.filter(
+                    doctor_id=doctor_id,
+                    appointment_date=appointment_date,
+                    appointment_time__startswith=f"{hour:02d}:"
+                ).exclude(id=instance.id).count()
+                
+                if existing_count >= 3:
+                    return Response(
+                        {'detail': 'You cannot add more than 3 appointments in this hour.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # ✅ UPDATE THE APPOINTMENT FIRST with all changes
+            self.perform_update(serializer)
+            
+            # ✅ Create history entry if status is changing
+            if old_status != new_status:
+                # Get the updated instance to capture new data
+                instance.refresh_from_db()
+                doc = instance.doctor
+                
+                try:
+                    # Create history entry with UPDATED data (after changes)
+                    history_entry = AppointmentHistory.objects.create(
+                        appointment=instance,
+                        name=instance.name,
+                        email=instance.email,
+                        phone=instance.phone,
+                        service_name=instance.service.name if instance.service else None,
+                        service_id=instance.service.id if instance.service else None,
+                        appointment_date=instance.appointment_date,
+                        appointment_time=instance.appointment_time,
+                        message=instance.message,
+                        doctor_id=getattr(doc, 'id', None),
+                        doctor_name=getattr(doc, 'name', None),
+                        previous_status=old_status,
+                        new_status=new_status,
+                        changed_by=str(request.user) if request.user.is_authenticated else 'api',
+                        notes=instance.admin_notes or ''
+                    )
+                    
+                    # ✅ MATCH Django admin behavior: delete appointment if APPROVED or REJECTED
+                    if new_status in ('APPROVED', 'REJECTED'):
+                        # Prepare response data with updated instance info
+                        response_data = {
+                            'id': instance.id,
+                            'name': instance.name,
+                            'email': instance.email,
+                            'phone': instance.phone,
+                            'status': new_status,
+                            'deleted': True,
+                            'moved_to_history': True,
+                            'history_id': history_entry.id,
+                            'message': f'Appointment {new_status.lower()} and moved to history'
+                        }
+                        # Delete the appointment
+                        instance.delete()
+                        return Response(response_data, status=status.HTTP_200_OK)
+                
+                except Exception as e:
+                    import traceback
+                    error_msg = str(e)
+                    traceback.print_exc()
+                    print(f"Error creating history entry: {error_msg}")
+                    return Response(
+                        {'detail': f'Failed to create history entry: {error_msg}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Return updated data
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            traceback.print_exc()
+            print(f"Error updating appointment: {error_msg}")
+            return Response(
+                {'detail': f'Failed to update appointment: {error_msg}'},
+                status=status.HTTP_400_BAD_REQUEST
             )
-            
-            # ✅ MATCH Django admin behavior: delete appointment if APPROVED or REJECTED
-            if new_status in ('APPROVED', 'REJECTED'):
-                # Prepare response data with updated instance info
-                response_data = {
-                    'id': instance.id,
-                    'name': instance.name,
-                    'email': instance.email,
-                    'phone': instance.phone,
-                    'status': new_status,
-                    'deleted': True,
-                    'moved_to_history': True,
-                    'history_id': history_entry.id,
-                    'message': f'Appointment {new_status.lower()} and moved to history'
-                }
-                # Delete the appointment
-                instance.delete()
-                return Response(response_data, status=status.HTTP_200_OK)
-        
-        # Return updated data
-        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def by_phone(self, request):
@@ -154,7 +237,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def calendar(self, request):
-        """Return appointments formatted for calendar view."""
+        """Return appointments formatted for calendar view. Excludes rejected appointments."""
         try:
             start_date = request.query_params.get('start_date')
             end_date = request.query_params.get('end_date')
@@ -166,11 +249,11 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Filter appointments by date range
+            # Filter appointments by date range - exclude rejected appointments globally
             appointments = Appointment.objects.filter(
                 appointment_date__gte=start_date,
                 appointment_date__lte=end_date
-            )
+            ).exclude(status='REJECTED')
 
             # Filter by doctor if specified
             if doctor_id:
@@ -189,7 +272,7 @@ class AppointmentHistoryViewSet(viewsets.ModelViewSet):
     serializer_class = AppointmentHistorySerializer
 
     def get_queryset(self):
-        """Filter history by phone number, date range, and doctor_id if provided."""
+        """Filter history by phone number, date range, and doctor_id if provided. Excludes rejected appointments for calendar views."""
         qs = super().get_queryset()
         
         # Filter by phone number if provided
@@ -217,6 +300,11 @@ class AppointmentHistoryViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(doctor_id=int(doctor_id))
             except (ValueError, TypeError):
                 pass  # Ignore invalid doctor_id values
+        
+        # Exclude rejected appointments when used for calendar views (when doctor_id is provided)
+        # This prevents rejected appointments from appearing in calendar
+        if doctor_id:
+            qs = qs.exclude(new_status='REJECTED')
         
         return qs
 

@@ -302,7 +302,9 @@ function handleNav(id: string, type: string) {
                     </div>
                     <div className="flex items-center gap-2">
                       {r._source === 'history' && (
-                        <div className="text-sm text-gray-700">Status: <span className="font-medium">{r.status || 'unvisited'}</span></div>
+                        <div className="text-sm text-gray-700">
+                          Status: <span className="font-medium">{r.visited === 'visited' ? 'Visited' : 'Unvisited'}</span>
+                        </div>
                       )}
                       
                     </div>

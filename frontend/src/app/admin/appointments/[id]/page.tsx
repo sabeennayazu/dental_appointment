@@ -6,7 +6,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { apiClient } from "@/lib/api";
 import { Appointment, AppointmentHistory, Doctor, Service } from "@/lib/types";
 import { ArrowLeft, Check, X, History as HistoryIcon, } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, getHours } from "date-fns";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { CalendarIcon } from "lucide-react";
@@ -22,6 +22,8 @@ import {
   getServiceName,
 } from "@/lib/appointment-sync";
 import { calendarSyncManager } from "@/lib/calendar-sync";
+import { getAppointments } from "@/lib/api/calendar";
+import { getHistory } from "@/lib/api/history";
 
 // State management for synchronized form + calendar
 // Uses a single source of truth with useReducer to manage:
@@ -99,6 +101,7 @@ export default function AppointmentDetailPage() {
 
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [history, setHistory] = useState<AppointmentHistory[]>([]);
+  const [calendarHistory, setCalendarHistory] = useState<AppointmentHistory[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +112,7 @@ export default function AppointmentDetailPage() {
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+  const [showCapacityModal, setShowCapacityModal] = useState(false);
 
   const fetchAppointment = useCallback(async () => {
     try {
@@ -187,8 +191,56 @@ export default function AppointmentDetailPage() {
     }
   }, [appointment]);
 
-  // Handler for slot clicks from calendar - enhanced two-way sync
-  const handleSlotClick = useCallback((date: string, time: string) => {
+  // Check if a time slot is at capacity (max 3 appointments per hour)
+  const checkSlotCapacity = useCallback(async (date: string, time: string, doctorId: number | null, excludeAppointmentId?: number): Promise<boolean> => {
+    if (!doctorId) return false;
+    
+    try {
+      const hour = parseInt(time.split(':')[0]);
+      
+      // Fetch appointments for the selected date
+      const appointments = await getAppointments({
+        doctor_id: doctorId,
+        start_date: date,
+        end_date: date,
+      });
+      
+      // Fetch history for the selected date
+      const history = await getHistory({
+        doctor_id: doctorId,
+        start_date: date,
+        end_date: date,
+      });
+      
+      // Count appointments in the same hour (excluding current appointment if specified)
+      const hourAppointments = [
+        ...appointments.filter(apt => {
+          const aptTime = parseISO(apt.start_time);
+          return getHours(aptTime) === hour && apt.id !== excludeAppointmentId;
+        }),
+        ...history.filter(h => {
+          const hHour = parseInt(h.appointment_time?.split(':')[0] || '0');
+          return hHour === hour && h.id !== excludeAppointmentId;
+        })
+      ];
+      
+      return hourAppointments.length >= 3;
+    } catch (error) {
+      console.error('Error checking slot capacity:', error);
+      return false;
+    }
+  }, []);
+
+  // Handler for slot clicks from calendar - enhanced two-way sync with validation
+  const handleSlotClick = useCallback(async (date: string, time: string) => {
+    // Check capacity before allowing selection
+    const isAtCapacity = await checkSlotCapacity(date, time, appointmentState.selectedDoctor, appointment?.id);
+    
+    if (isAtCapacity) {
+      setShowCapacityModal(true);
+      return;
+    }
+    
     // Update synchronized state first
     dispatch({ type: 'SET_SLOT', payload: { date, time } });
     
@@ -201,7 +253,7 @@ export default function AppointmentDetailPage() {
     
     // Clear any existing errors when user makes a selection
     setError("");
-  }, []);
+  }, [appointmentState.selectedDoctor, appointment?.id, checkSlotCapacity]);
 
   // Handler for form changes that should sync to calendar - enhanced with validation
   const handleDoctorChange = useCallback((doctorId: number | null) => {
@@ -267,6 +319,73 @@ export default function AppointmentDetailPage() {
     }
   }, [id, fetchAppointment, fetchHistory, fetchDoctors, fetchServices]);
 
+  // Initialize calendar state from appointment data when appointment loads
+  useEffect(() => {
+    if (appointment && doctors.length > 0) {
+      // Find the doctor object
+      const doctorObj = doctors.find(d => d.id === appointment.doctor);
+      if (doctorObj && appointmentState.selectedDoctor !== doctorObj.id) {
+        dispatch({ type: 'SET_DOCTOR', payload: appointment.doctor });
+      }
+      
+      // Set date and time
+      if (appointment.appointment_date && appointmentState.selectedDate !== appointment.appointment_date) {
+        dispatch({ type: 'SET_DATE', payload: appointment.appointment_date });
+      }
+      if (appointment.appointment_time && appointmentState.selectedTime !== appointment.appointment_time) {
+        dispatch({ type: 'SET_TIME', payload: appointment.appointment_time });
+      }
+    }
+  }, [appointment, doctors, appointmentState.selectedDoctor, appointmentState.selectedDate, appointmentState.selectedTime]);
+
+  // Fetch appointments for the calendar when doctor/date changes
+  useEffect(() => {
+    if (!appointmentState.selectedDoctor || !appointmentState.selectedDate) {
+      dispatch({ type: 'SET_APPOINTMENTS', payload: [] });
+      return;
+    }
+
+    const fetchCalendarAppointments = async () => {
+      try {
+        const appts = await getAppointments({
+          doctor_id: appointmentState.selectedDoctor,
+          start_date: appointmentState.selectedDate,
+          end_date: appointmentState.selectedDate,
+        });
+        dispatch({ type: 'SET_APPOINTMENTS', payload: appts });
+      } catch (error) {
+        console.error('Error fetching calendar appointments:', error);
+        dispatch({ type: 'SET_APPOINTMENTS', payload: [] });
+      }
+    };
+
+    fetchCalendarAppointments();
+  }, [appointmentState.selectedDoctor, appointmentState.selectedDate]);
+
+  // Fetch history for the selected doctor and date (for calendar display)
+  useEffect(() => {
+    if (!appointmentState.selectedDoctor || !appointmentState.selectedDate) {
+      setCalendarHistory([]);
+      return;
+    }
+
+    const fetchCalendarHistory = async () => {
+      try {
+        const historyData = await getHistory({
+          doctor_id: appointmentState.selectedDoctor,
+          start_date: appointmentState.selectedDate,
+          end_date: appointmentState.selectedDate,
+        });
+        setCalendarHistory(historyData || []);
+      } catch (error) {
+        console.error('Error fetching calendar history:', error);
+        setCalendarHistory([]);
+      }
+    };
+
+    fetchCalendarHistory();
+  }, [appointmentState.selectedDoctor, appointmentState.selectedDate]);
+
   // Save appointment changes with validation
   const handleSaveAppointment = async () => {
     if (!appointment) return;
@@ -291,6 +410,7 @@ export default function AppointmentDetailPage() {
     setError("");
 
     try {
+      // Only send valid fields that the serializer accepts
       const updateData = {
         name: appointment.name,
         email: appointment.email,
@@ -312,11 +432,51 @@ export default function AppointmentDetailPage() {
       setError("");
       alert("Appointment saved successfully!");
       
+      // Refetch appointments for calendar to reflect changes
+      if (appointmentState.selectedDoctor && appointmentState.selectedDate) {
+        try {
+          const appts = await getAppointments({
+            doctor_id: appointmentState.selectedDoctor,
+            start_date: appointmentState.selectedDate,
+            end_date: appointmentState.selectedDate,
+          });
+          dispatch({ type: 'SET_APPOINTMENTS', payload: appts });
+        } catch (error) {
+          console.error('Error refetching appointments:', error);
+        }
+      }
+      
       // Emit sync event for real-time updates
       calendarSyncManager.emitAppointmentUpdated(updated);
     } catch (err: any) {
-      setError(err.message || "Failed to save appointment");
-      console.error("Error saving appointment:", err);
+      let errorMessage = "Failed to save appointment";
+      
+      // Handle Django REST Framework error responses
+      if (err?.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (err.response.data.non_field_errors?.[0]) {
+          errorMessage = err.response.data.non_field_errors[0];
+        } else if (Object.keys(err.response.data).length > 0) {
+          const firstError = Object.values(err.response.data)[0];
+          if (Array.isArray(firstError)) {
+            errorMessage = firstError[0];
+          } else if (typeof firstError === 'string') {
+            errorMessage = firstError;
+          }
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      console.error("Error saving appointment:", { 
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
     } finally {
       setSaving(false);
     }
@@ -324,6 +484,21 @@ export default function AppointmentDetailPage() {
 
   const handleStatusChange = async (newStatus: "APPROVED" | "REJECTED") => {
     if (!appointment) return;
+
+    // Validate appointment capacity before approving
+    if (newStatus === "APPROVED" && appointment.doctor && appointment.appointment_date && appointment.appointment_time) {
+      const isAtCapacity = await checkSlotCapacity(
+        appointment.appointment_date,
+        appointment.appointment_time,
+        appointment.doctor,
+        appointment.id
+      );
+      
+      if (isAtCapacity) {
+        setShowCapacityModal(true);
+        return;
+      }
+    }
 
     const confirmed = window.confirm(
       `Are you sure you want to ${newStatus.toLowerCase()} this appointment?`
@@ -335,7 +510,7 @@ export default function AppointmentDetailPage() {
     setError("");
 
     try {
-      // Save all changes and update status
+      // Only send valid fields that the serializer accepts
       const updateData: any = {
         name: appointment.name,
         email: appointment.email,
@@ -364,6 +539,20 @@ export default function AppointmentDetailPage() {
       // Refresh history to show the new entry
       await fetchHistory();
       
+      // Refetch appointments for calendar to reflect changes (if appointment still exists)
+      if (!updated.deleted && appointmentState.selectedDoctor && appointmentState.selectedDate) {
+        try {
+          const appts = await getAppointments({
+            doctor_id: appointmentState.selectedDoctor,
+            start_date: appointmentState.selectedDate,
+            end_date: appointmentState.selectedDate,
+          });
+          dispatch({ type: 'SET_APPOINTMENTS', payload: appts });
+        } catch (error) {
+          console.error('Error refetching appointments:', error);
+        }
+      }
+      
       // Emit sync event for real-time updates
       calendarSyncManager.emitAppointmentUpdated(updated);
 
@@ -373,8 +562,34 @@ export default function AppointmentDetailPage() {
         router.push("/admin/appointments");
       }, 1500);
     } catch (err: any) {
-      setError(err.message || `Failed to ${newStatus.toLowerCase()} appointment`);
-      console.error("Error details:", err);
+      let errorMessage = `Failed to ${newStatus.toLowerCase()} appointment`;
+      
+      // Handle Django REST Framework error responses
+      if (err?.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (err.response.data.non_field_errors?.[0]) {
+          errorMessage = err.response.data.non_field_errors[0];
+        } else if (Object.keys(err.response.data).length > 0) {
+          const firstError = Object.values(err.response.data)[0];
+          if (Array.isArray(firstError)) {
+            errorMessage = firstError[0];
+          } else if (typeof firstError === 'string') {
+            errorMessage = firstError;
+          }
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      console.error("Error updating appointment:", { 
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
     } finally {
       setSaving(false);
     }
@@ -397,7 +612,17 @@ export default function AppointmentDetailPage() {
       setAppointment(updated);
       alert("Notes saved successfully!");
     } catch (err: any) {
-      setError(err.message || "Failed to save notes");
+      let errorMessage = "Failed to save notes";
+      
+      if (err?.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      setError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -571,10 +796,11 @@ export default function AppointmentDetailPage() {
                   <div className="flex items-center gap-2">
                     {/* Calendar icon triggers the datepicker */}
                     <DatePicker
-                      selected={appointment.appointment_date ? new Date(appointment.appointment_date) : null}
+                      selected={appointment.appointment_date ? new Date(appointment.appointment_date + 'T00:00:00') : null}
                       onChange={(date: Date | null) => {
-                        const dateStr = date?.toISOString().split('T')[0];
-                        if (dateStr) {
+                        if (date) {
+                          // Use format to ensure YYYY-MM-DD format without timezone issues
+                          const dateStr = format(date, 'yyyy-MM-dd');
                           handleDateChange(dateStr);
                         }
                       }}
@@ -628,16 +854,6 @@ export default function AppointmentDetailPage() {
                   />
                 </div>
 
-                {/* Save Changes Button */}
-                <div className="md:col-span-2">
-                  <button
-                    onClick={handleSaveAppointment}
-                    disabled={saving}
-                    className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition disabled:opacity-50 font-medium"
-                  >
-                    {saving ? "Saving..." : "Save Changes"}
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -740,39 +956,68 @@ export default function AppointmentDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-                
-
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Doctor Schedule</h2>
-              {appointment && appointment.doctor && (
+              {appointment && appointment.doctor && appointmentState.selectedDoctor ? (
                 <div className="space-y-4">
-                  <div className="mb-4 text-sm text-gray-600">
-                    {appointment.doctor_details && (
+                  {appointment.doctor_details && (
+                    <div className="mb-4 text-sm text-gray-600">
                       <p className="font-medium">Doctor: Dr. {appointment.doctor_details.name}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">Showing appointments for the selected doctor</p>
-                  </div>
+                      <p className="text-xs text-gray-500 mt-1">Showing appointments for the selected doctor</p>
+                    </div>
+                  )}
                   <div className="h-[600px] border border-gray-200 rounded-lg overflow-hidden">
                     <EnhancedCalendarView
-                      doctorId={appointment.doctor as number}
-                      initialDate={appointment.appointment_date}
-                      view="day"
-                      className="h-full"
-                      selectedSlot={appointmentState.selectedDate && appointmentState.selectedTime ? {
-                        date: appointmentState.selectedDate,
-                        time: appointmentState.selectedTime
-                      } : undefined}
-                      onSlotClick={handleSlotClick}
-                      onStateChange={(state) => {
-                        // Update form when calendar state changes
-                        const dateStr = format(state.date, 'yyyy-MM-dd');
+                      selectedDate={appointmentState.selectedDate ? parseISO(appointmentState.selectedDate) : new Date()}
+                      selectedDoctor={
+                        appointmentState.selectedDoctor
+                          ? (doctors.find(d => d.id === appointmentState.selectedDoctor) || null)
+                          : null
+                      }
+                      appointments={appointmentState.appointments}
+                      history={[...history, ...calendarHistory]}
+                      loading={loading}
+                      onDateChange={(date) => {
+                        const dateStr = format(date, 'yyyy-MM-dd');
+                        dispatch({ type: 'SET_DATE', payload: dateStr });
                         handleDateChange(dateStr);
                       }}
+                      onDoctorChange={(doctor) => {
+                        dispatch({ type: 'SET_DOCTOR', payload: doctor?.id || null });
+                        handleDoctorChange(doctor?.id || null);
+                      }}
+                      onSlotClick={handleSlotClick}
+                      onCapacityExceeded={() => setShowCapacityModal(true)}
+                      className="h-full"
                     />
                   </div>
                 </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <p>Please select a doctor to view the schedule</p>
+                </div>
               )}
             </div>
+
+        {/* Capacity Modal */}
+        {showCapacityModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Maximum Capacity Reached
+              </h3>
+              <p className="text-gray-600 mb-6">
+                You cannot add more than 3 appointments in this hour.
+              </p>
+              <button
+                onClick={() => setShowCapacityModal(false)}
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
             {/* Actions */}
             {appointment.status === "PENDING" && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
